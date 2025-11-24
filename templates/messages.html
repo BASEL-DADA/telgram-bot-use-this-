@@ -1,0 +1,33 @@
+<!-- templates/messages.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>إدارة الرسائل</title>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial; direction: rtl; }
+        .message-box { border: 1px solid #ccc; margin: 10px; padding: 15px; }
+        textarea { width: 100%; height: 100px; }
+        button { background: #007bff; color: white; padding: 8px 16px; border: none; cursor: pointer; }
+        .description { color: #666; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h1>إدارة رسائل البوت</h1>
+    <a href="/">← العودة للوحة الرئيسية</a>
+    
+    {% for key, text, description in messages %}
+    <div class="message-box">
+        <h3>{{ key }}</h3>
+        <p class="description">{{ description }}</p>
+        
+        <form method="POST" action="/update_message">
+            <input type="hidden" name="message_key" value="{{ key }}">
+            <textarea name="message_text">{{ text }}</textarea>
+            <br><br>
+            <button type="submit">تحديث الرسالة</button>
+        </form>
+    </div>
+    {% endfor %}
+</body>
+</html>

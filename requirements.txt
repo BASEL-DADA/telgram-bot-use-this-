@@ -1,0 +1,6 @@
+telethon
+httpx
+Flask
+psycopg2-binary
+python-dotenv
+gunicorn
