@@ -1,4 +1,5 @@
 from telethon import TelegramClient, events
+from telethon.sessions import StringSession
 import time
 import asyncio
 import os
@@ -8,14 +9,18 @@ from db import is_user_verified, add_verified_user, is_allowed_order, is_banned_
 # معلومات الـ API
 api_id = int(os.environ.get("API_ID"))
 api_hash = os.environ.get("API_HASH")
+session_string = os.environ.get("SESSION_STRING")  # ✅ استخدام String Session
 
-# إنشاء العميل
-client = TelegramClient('my_session', api_id, api_hash)
+# إنشاء العميل باستخدام String Session
+if not session_string:
+    raise ValueError("❌ SESSION_STRING غير موجود! يرجى إضافته في متغيرات Heroku")
+
+client = TelegramClient(StringSession(session_string), api_id, api_hash)
 bot_username = 'PoweredSteamBot'
 
 waiting_requests = {}
 active_request = None
-welcomed_users = set()  # المستخدمين الذين تم إرسال رسالة الترحيب لهم
+welcomed_users = set()
 
 allowed_accounts = {
     'quzz5e',
@@ -73,11 +78,9 @@ async def handle_incoming(event):
 
     # فحص أمر الخروج
     if message.lower() == "exit":
-        # حذف المستخدم من قاعدة البيانات
         cursor.execute("DELETE FROM users WHERE user_id = %s;", (sender.id,))
         conn.commit()
         
-        # إزالة من المتغيرات
         if sender.id in welcomed_users:
             welcomed_users.remove(sender.id)
         if sender.id in waiting_requests:
@@ -92,12 +95,10 @@ async def handle_incoming(event):
             await event.reply(messages['order_banned'])
             return
         elif is_allowed_order(message):
-            # استخدام first_name من البروفايل
             display_name = sender.first_name or sender.username or "مستخدم مجهول"
             add_verified_user(sender.id, message, display_name)
             await event.reply(messages['order_activated'])
             
-            # إرسال رسالة الترحيب مرة واحدة فقط للمستخدمين الجدد
             if sender.id not in welcomed_users:
                 welcomed_users.add(sender.id)
                 await event.reply(messages['welcome'])
@@ -122,7 +123,7 @@ async def handle_incoming(event):
 
     current_time = time.time()
     if sender.id in waiting_requests:
-        if current_time - waiting_requests[sender.id]['time'] < 180:  # ✅ تغيير من 300 إلى 180 ثانية (3 دقائق)
+        if current_time - waiting_requests[sender.id]['time'] < 180:
             await event.reply(messages['wait_5_minutes'])
             return
 
@@ -133,13 +134,12 @@ async def handle_incoming(event):
     print(f"📅 رسالة من {sender.id}: {message}")
     bot = await client.get_entity(bot_username)
 
-    # ✅ حفظ سجل الاستخدام بشكل صحيح
     display_name = sender.first_name or sender.username or "مستخدم مجهول"
     log_usage(
-        order_id=user_order_code or "غير معروف",  # رقم الطلب الحقيقي
+        order_id=user_order_code or "غير معروف",
         user_id=sender.id,
-        username=display_name,  # اسم البروفايل
-        account=message  # اسم الحساب المرسل
+        username=display_name,
+        account=message
     )
 
     await client.send_message(bot, message)
@@ -151,7 +151,7 @@ async def handle_incoming(event):
     active_request = sender.id
 
     async def check_timeout():
-        await asyncio.sleep(180)  # ✅ تغيير من 300 إلى 180 ثانية (3 دقائق)
+        await asyncio.sleep(180)
         if sender.id in waiting_requests:
             print(f"⏳ انتهى وقت الانتظار للمستخدم {sender.id}")
             await client.send_message(sender.id, messages['timeout_message'])
@@ -160,8 +160,6 @@ async def handle_incoming(event):
             active_request = None
 
     asyncio.create_task(check_timeout())
-    
-    # إرسال رسالة "تسجيل الدخول" بعد إرسال الرسالة للبوت مباشرة
     await event.reply(messages['login_message'])
 
 @client.on(events.NewMessage(from_users=bot_username))
@@ -207,9 +205,8 @@ async def handle_reply(event):
         print(f"📄 تم تجاهل رد غير متعلق بالكود: {message}")
 
 async def main():
-    print("🤖 سكربت باسل شغال...")
+    print("🤖 سكربت ايكون ستور شغال...")
     await client.run_until_disconnected()
 
 with client:
-
     client.loop.run_until_complete(main())
