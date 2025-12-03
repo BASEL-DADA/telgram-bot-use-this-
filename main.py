@@ -125,7 +125,6 @@ async def handle_incoming(event):
         return
 
     current_time = time.time()
-    current_time = time.time()
     
     # التحقق من وقت الانتظار للمستخدم نفسه
     if sender.id in waiting_requests:
