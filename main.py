@@ -146,8 +146,15 @@ async def handle_incoming(event):
     bot = await client.get_entity(bot_username)
 
     display_name = sender.first_name or sender.username or "مستخدم مجهول"
+    
+    # تسجيل الاستخدام
     log_usage(
         order_id=user_order_code or "غير معروف",
+        user_id=sender.id,
+        username=display_name,
+        account=message
+    )
+    
     waiting_requests[sender.id] = {
         'account': message,
         'time': current_time
@@ -156,6 +163,10 @@ async def handle_incoming(event):
     # عرض موقع المستخدم في الطابور
     queue_position = len([uid for uid, data in waiting_requests.items() 
                          if data['time'] <= current_time])
+    
+    # إرسال رسالة التأكيد للمستخدم
+    await event.reply(messages['login_message'])
+    await client.send_message(bot.id, message)
     
     async def check_timeout():
         await asyncio.sleep(REQUEST_TIMEOUT)
@@ -184,11 +195,8 @@ async def handle_reply(event):
         if sent_to:
             print(f"✅ تم إرسال رسالة التعليق لـ {len(sent_to)} مستخدمين")
         return
-@client.on(events.NewMessage(from_users=bot_username))
-async def handle_reply(event):
-    global active_request
     elif "رمز تحقق لحساب" in message and "هو" in message:
-        print(f"📩 تم استلام الرد الثاني من البوت: {message}")
+        print(f"📩 تم استلام الرد من البوت: {message}")
         try:
             account_part = message.split("رمز تحقق لحساب")[1]
             account_name = account_part.split(",")[0].strip().lower()
@@ -206,25 +214,6 @@ async def handle_reply(event):
             if not found:
                 print(f"⚠️ لا يوجد مستخدم بانتظار الحساب: {account_name}")
                 print(f"📋 المستخدمون الحاليون: {[data['account'] for data in waiting_requests.values()]}")
-        except Exception as e:
-            print(f"❌ خطأ أثناء تحليل الرسالة: {e}")
-    else:
-        print(f"📄 تم تجاهل رد غير متعلق بالكود: {message}")
-    elif "رمز تحقق لحساب" in message and "هو" in message:
-        print(f"📩 تم استلام الرد الثاني من البوت: {message}")
-        try:
-            account_part = message.split("رمز تحقق لحساب")[1]
-            account_name = account_part.split(",")[0].strip().lower()
-
-            for user_id, data in list(waiting_requests.items()):
-                if data['account'].lower().strip() == account_name:
-                    await client.send_message(user_id, message)
-                    print(f"📨 أرسلنا الكود للمستخدم {user_id}")
-                    del waiting_requests[user_id]
-                    active_request = None
-                    break
-            else:
-                print(f"⚠️ لا يوجد شخص بانتظار هذا الحساب: {account_name}")
         except Exception as e:
             print(f"❌ خطأ أثناء تحليل الرسالة: {e}")
     else:
