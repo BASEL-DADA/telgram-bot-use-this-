@@ -19,8 +19,12 @@ client = TelegramClient(StringSession(session_string), api_id, api_hash)
 bot_username = 'PoweredSteamBot'
 
 waiting_requests = {}
-active_request = None
+# active_request = None  # ✅ تم إلغاؤه للسماح بأكثر من مستخدم
 welcomed_users = set()
+
+# إعدادات النظام
+MAX_CONCURRENT_USERS = 10  # الحد الأقصى للمستخدمين المتزامنين
+REQUEST_TIMEOUT = 180  # 3 دقائق
 
 allowed_accounts = {
     'quzz5e',
@@ -69,7 +73,6 @@ async def handle_incoming(event):
     if not event.is_private:
         return
 
-    global active_request
     sender = await event.get_sender()
     message = event.raw_text.strip()
 
@@ -122,68 +125,91 @@ async def handle_incoming(event):
         return
 
     current_time = time.time()
+    current_time = time.time()
+    
+    # التحقق من وقت الانتظار للمستخدم نفسه
     if sender.id in waiting_requests:
-        if current_time - waiting_requests[sender.id]['time'] < 180:
-            await event.reply(messages['wait_5_minutes'])
+        if current_time - waiting_requests[sender.id]['time'] < REQUEST_TIMEOUT:
+            remaining_time = int(REQUEST_TIMEOUT - (current_time - waiting_requests[sender.id]['time']))
+            await event.reply(f"🚫 الرجاء الانتظار {remaining_time} ثانية قبل إرسال حساب آخر.")
             return
-
-    if active_request:
-        await event.reply(messages['someone_using'])
+    
+    # التحقق من عدد المستخدمين المتزامنين
+    active_users = sum(1 for uid, data in waiting_requests.items() 
+                      if current_time - data['time'] < REQUEST_TIMEOUT)
+    
+    if active_users >= MAX_CONCURRENT_USERS:
+        await event.reply(f"⏳ البوت مشغول حالياً ({active_users}/{MAX_CONCURRENT_USERS} مستخدمين)\n"
+                         f"الرجاء الانتظار قليلاً والمحاولة مرة أخرى.")
         return
-
     print(f"📅 رسالة من {sender.id}: {message}")
     bot = await client.get_entity(bot_username)
 
     display_name = sender.first_name or sender.username or "مستخدم مجهول"
     log_usage(
         order_id=user_order_code or "غير معروف",
-        user_id=sender.id,
-        username=display_name,
-        account=message
-    )
-
-    await client.send_message(bot, message)
-
     waiting_requests[sender.id] = {
         'account': message,
         'time': current_time
     }
-    active_request = sender.id
 
+    # عرض موقع المستخدم في الطابور
+    queue_position = len([uid for uid, data in waiting_requests.items() 
+                         if data['time'] <= current_time])
+    
     async def check_timeout():
-        await asyncio.sleep(180)
+        await asyncio.sleep(REQUEST_TIMEOUT)
         if sender.id in waiting_requests:
             print(f"⏳ انتهى وقت الانتظار للمستخدم {sender.id}")
             await client.send_message(sender.id, messages['timeout_message'])
             del waiting_requests[sender.id]
-            global active_request
-            active_request = None
 
     asyncio.create_task(check_timeout())
-    await event.reply(messages['login_message'])
-
 @client.on(events.NewMessage(from_users=bot_username))
 async def handle_reply(event):
-    global active_request
     message = event.raw_text.strip()
 
     if "معلق" in message:
         print(f"🔴 تم الكشف عن رد يحتوي على 'معلق': {message}")
         fixed_message = message.replace("@ skytvx", "@ikon.storee")
+        
+        # إرسال للجميع (في حالة عدم معرفة الحساب المحدد)
+        sent_to = []
         for user_id, data in list(waiting_requests.items()):
             await client.send_message(user_id, f"🚫 {fixed_message}")
             del waiting_requests[user_id]
-            active_request = None
+            sent_to.append(user_id)
             print(f"📨 تم إرسال رسالة تعليق للمستخدم {user_id}")
+        
+        if sent_to:
+            print(f"✅ تم إرسال رسالة التعليق لـ {len(sent_to)} مستخدمين")
         return
+@client.on(events.NewMessage(from_users=bot_username))
+async def handle_reply(event):
+    global active_request
+    elif "رمز تحقق لحساب" in message and "هو" in message:
+        print(f"📩 تم استلام الرد الثاني من البوت: {message}")
+        try:
+            account_part = message.split("رمز تحقق لحساب")[1]
+            account_name = account_part.split(",")[0].strip().lower()
 
-    elif "تجرى عملية الدخول" in message:
-        print(f"🔵 تم الكشف عن رد يحتوي على 'تجرى عملية الدخول': {message}")
-        for user_id in waiting_requests:
-            await client.send_message(user_id, message)
-            print(f"📨 تم إرسال رسالة 'تجرى عملية الدخول' للمستخدم {user_id}")
-        return
-
+            # البحث عن المستخدم المطابق
+            found = False
+            for user_id, data in list(waiting_requests.items()):
+                if data['account'].lower().strip() == account_name:
+                    await client.send_message(user_id, message)
+                    print(f"✅ تم إرسال الكود للمستخدم {user_id} للحساب {account_name}")
+                    del waiting_requests[user_id]
+                    found = True
+                    break
+            
+            if not found:
+                print(f"⚠️ لا يوجد مستخدم بانتظار الحساب: {account_name}")
+                print(f"📋 المستخدمون الحاليون: {[data['account'] for data in waiting_requests.values()]}")
+        except Exception as e:
+            print(f"❌ خطأ أثناء تحليل الرسالة: {e}")
+    else:
+        print(f"📄 تم تجاهل رد غير متعلق بالكود: {message}")
     elif "رمز تحقق لحساب" in message and "هو" in message:
         print(f"📩 تم استلام الرد الثاني من البوت: {message}")
         try:
