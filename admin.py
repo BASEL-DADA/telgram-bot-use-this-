@@ -26,19 +26,94 @@ api_hash = os.environ.get("API_HASH")
 # الصفحة الرئيسية - عرض الطلبات
 @app.route('/')
 def index():
-    cursor.execute("SELECT order_code, is_banned FROM orders ORDER BY order_code ASC;")
-    orders = cursor.fetchall()
-    
-    # حساب الإحصائيات
-    total_orders = len(orders)
-    allowed_orders = sum(1 for _, banned in orders if not banned)
-    banned_orders = sum(1 for _, banned in orders if banned)
-    
-    return render_template('index.html', 
-                         orders=orders,
-                         total_orders=total_orders,
-                         allowed_orders=allowed_orders,
-                         banned_orders=banned_orders)
+    try:
+        cursor.execute("SELECT order_code, is_banned FROM orders ORDER BY order_code ASC;")
+        orders = cursor.fetchall()
+        
+        # حساب الإحصائيات الأساسية
+        total_orders = len(orders)
+        allowed_orders = sum(1 for _, banned in orders if not banned)
+        banned_orders = sum(1 for _, banned in orders if banned)
+        
+        # إحصائيات متقدمة
+        # إجمالي المستخدمين النشطين
+        try:
+            cursor.execute("SELECT COUNT(*) FROM users;")
+            total_active_users = cursor.fetchone()[0]
+        except:
+            total_active_users = 0
+        
+        # إجمالي الاستخدامات
+        try:
+            cursor.execute("SELECT COUNT(*) FROM usage_log;")
+            total_usage = cursor.fetchone()[0]
+        except:
+            total_usage = 0
+        
+        # الاستخدامات اليوم
+        try:
+            cursor.execute("""
+                SELECT COUNT(*) FROM usage_log 
+                WHERE DATE(timestamp) = CURRENT_DATE;
+            """)
+            today_usage = cursor.fetchone()[0]
+        except:
+            today_usage = 0
+        
+        # أكثر 5 حسابات استخداماً
+        try:
+            cursor.execute("""
+                SELECT account, COUNT(*) as count 
+                FROM usage_log 
+                GROUP BY account 
+                ORDER BY count DESC 
+                LIMIT 5;
+            """)
+            top_accounts = cursor.fetchall()
+        except:
+            top_accounts = []
+        
+        # أكثر 5 مستخدمين نشاطاً
+        try:
+            cursor.execute("""
+                SELECT username, COUNT(*) as count 
+                FROM usage_log 
+                GROUP BY username 
+                ORDER BY count DESC 
+                LIMIT 5;
+            """)
+            top_users = cursor.fetchall()
+        except:
+            top_users = []
+        
+        # نشاط آخر 7 أيام
+        try:
+            cursor.execute("""
+                SELECT DATE(timestamp) as date, COUNT(*) as count
+                FROM usage_log
+                WHERE timestamp >= CURRENT_DATE - INTERVAL '7 days'
+                GROUP BY DATE(timestamp)
+                ORDER BY date DESC;
+            """)
+            weekly_activity = cursor.fetchall()
+        except Exception as e:
+            print(f"خطأ في استعلام النشاط الأسبوعي: {e}")
+            weekly_activity = []
+        
+        return render_template('index.html', 
+                             orders=orders,
+                             total_orders=total_orders,
+                             allowed_orders=allowed_orders,
+                             banned_orders=banned_orders,
+                             total_active_users=total_active_users,
+                             total_usage=total_usage,
+                             today_usage=today_usage,
+                             top_accounts=top_accounts,
+                             top_users=top_users,
+                             weekly_activity=weekly_activity)
+    except Exception as e:
+        print(f"خطأ في الصفحة الرئيسية: {e}")
+        return f"خطأ في تحميل الصفحة: {str(e)}", 500
 
 # صفحة المستخدمين النشطين
 @app.route('/users')

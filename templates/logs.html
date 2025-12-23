@@ -57,30 +57,50 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 25px;
-            padding: 20px;
+            padding: 25px;
             background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
             border-radius: 15px;
             color: white;
             flex-wrap: wrap;
             gap: 15px;
+            box-shadow: 0 8px 20px rgba(79, 172, 254, 0.3);
         }
 
         .stats-info {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 15px;
         }
 
         .stats-info i {
+            font-size: 2rem;
+        }
+        
+        .stats-info h3 {
             font-size: 1.5rem;
+            margin: 0;
+        }
+        
+        .stats-info p {
+            margin: 5px 0 0 0;
+            opacity: 0.9;
         }
 
         .search-container {
             background: white;
-            padding: 20px;
+            padding: 25px;
             border-radius: 15px;
             margin-bottom: 25px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+        }
+        
+        .search-title {
+            font-size: 1.3rem;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .search-box {
@@ -333,15 +353,25 @@
                         <p>تم تحديث البيانات تلقائياً</p>
                     </div>
                 </div>
+                <div class="stats-info">
+                    <i class="fas fa-clock"></i>
+                    <div>
+                        <p><strong>التحديث التلقائي:</strong> كل دقيقة</p>
+                    </div>
+                </div>
             </div>
 
             <!-- صندوق البحث -->
             <div class="search-container">
+                <h3 class="search-title">
+                    <i class="fas fa-search"></i>
+                    البحث في السجلات
+                </h3>
                 <div class="search-box">
                     <input type="text" 
                            id="searchInput" 
                            class="search-input" 
-                           placeholder="🔍 ابحث عن رقم طلب، اسم مستخدم، أو حساب..."
+                           placeholder="ابحث عن رقم طلب، اسم مستخدم، أو حساب..."
                            onkeyup="handleSearch(event)">
                     <button class="search-btn" onclick="searchLogs()">
                         <i class="fas fa-search"></i>
@@ -398,12 +428,16 @@
                             {% endfor %}
                         </tbody>
                     </table>
-                </div>
-            </div>
-            {% else %}
-            <div class="empty-state">
-                <i class="fas fa-inbox"></i>
-                <h3>لا توجد سجلات بعد</h3>
+            <div class="back-section">
+                <a class="back-link" href="/">
+                    <i class="fas fa-home"></i>
+                    الصفحة الرئيسية
+                </a>
+                <a class="back-link" href="/users">
+                    <i class="fas fa-users"></i>
+                    المستخدمين
+                </a>
+            </div>3>لا توجد سجلات بعد</h3>
                 <p>سيتم عرض سجلات الاستخدام هنا عند بدء استخدام البوت</p>
             </div>
             {% endif %}
