@@ -71,20 +71,24 @@ admin_help = """
 
 📋 **إدارة الطلبات:**
 /orders - عرض جميع الطلبات
-/addorder [رقم] - إضافة طلب جديد
-/banorder [رقم] - حظر طلب
-/unbanorder [رقم] - إلغاء حظر طلب
-/deleteorder [رقم] - حذف طلب
+/add رقم1 رقم2 - إضافة طلب (أو أكثر)
+/ban رقم1 رقم2 - حظر طلب (أو أكثر)
+/unban رقم1 رقم2 - إلغاء حظر
+/del رقم1 رقم2 - حذف طلب (أو أكثر)
 
 👥 **إدارة المستخدمين:**
 /users - عرض المستخدمين النشطين
-/kickuser [id] - طرد مستخدم
+/kick user_id - طرد مستخدم
 
 📊 **الإحصائيات:**
 /stats - إحصائيات سريعة
 /logs - آخر 10 عمليات
 
 ℹ️ /help - عرض هذه الرسالة
+
+💡 **أمثلة:**
+`/add 12345 67890 abc123`
+`/ban 12345`
 """
 
 # ==================== إدخال الطلبات الافتراضية ====================
@@ -122,135 +126,179 @@ async def handle_bot_message(event):
     user_id = sender.id
     username = sender.username
     
+    # ==================== تجاهل الأوامر للمستخدمين العاديين ====================
+    if message.startswith('/') and not is_admin(user_id, username):
+        # المستخدم العادي أرسل أمر - نتجاهله
+        return
+    
     # ==================== أوامر الأدمن ====================
     if is_admin(user_id, username):
         
-        # مساعدة
-        if message == '/start' or message == '/help':
-            await event.reply(admin_help)
-            return
-        
-        # عرض الطلبات
-        if message == '/orders':
-            cursor.execute("SELECT order_code, is_banned FROM orders ORDER BY order_code;")
-            orders = cursor.fetchall()
-            if not orders:
-                await event.reply("📭 لا توجد طلبات.")
+        # أي أمر يبدأ بـ / يتم معالجته هنا
+        if message.startswith('/'):
+            
+            # مساعدة
+            if message == '/start' or message == '/help':
+                await event.reply(admin_help)
                 return
             
-            text = "📋 **قائمة الطلبات:**\n\n"
-            for code, banned in orders[:50]:  # أول 50 فقط
-                status = "🚫" if banned else "✅"
-                text += f"{status} `{code}`\n"
-            
-            if len(orders) > 50:
-                text += f"\n... و {len(orders) - 50} طلب آخر"
-            
-            await event.reply(text)
-            return
-        
-        # إضافة طلب
-        if message.startswith('/addorder '):
-            code = message.split(' ', 1)[1].strip().lower()
-            cursor.execute("""
-                INSERT INTO orders (order_code, is_banned)
-                VALUES (%s, FALSE)
-                ON CONFLICT (order_code) DO UPDATE SET is_banned = FALSE;
-            """, (code,))
-            conn.commit()
-            await event.reply(f"✅ تم إضافة الطلب: `{code}`")
-            return
-        
-        # حظر طلب
-        if message.startswith('/banorder '):
-            code = message.split(' ', 1)[1].strip().lower()
-            cursor.execute("UPDATE orders SET is_banned = TRUE WHERE order_code = %s;", (code,))
-            conn.commit()
-            await event.reply(f"🚫 تم حظر الطلب: `{code}`")
-            return
-        
-        # إلغاء حظر
-        if message.startswith('/unbanorder '):
-            code = message.split(' ', 1)[1].strip().lower()
-            cursor.execute("UPDATE orders SET is_banned = FALSE WHERE order_code = %s;", (code,))
-            conn.commit()
-            await event.reply(f"✅ تم إلغاء حظر الطلب: `{code}`")
-            return
-        
-        # حذف طلب
-        if message.startswith('/deleteorder '):
-            code = message.split(' ', 1)[1].strip().lower()
-            cursor.execute("DELETE FROM orders WHERE order_code = %s;", (code,))
-            conn.commit()
-            await event.reply(f"🗑️ تم حذف الطلب: `{code}`")
-            return
-        
-        # عرض المستخدمين
-        if message == '/users':
-            cursor.execute("""
-                SELECT user_id, username, order_id, verified_at 
-                FROM users ORDER BY verified_at DESC LIMIT 20;
-            """)
-            users = cursor.fetchall()
-            if not users:
-                await event.reply("📭 لا يوجد مستخدمين نشطين.")
+            # عرض الطلبات
+            if message == '/orders':
+                cursor.execute("SELECT order_code, is_banned FROM orders ORDER BY order_code;")
+                orders = cursor.fetchall()
+                if not orders:
+                    await event.reply("📭 لا توجد طلبات.")
+                    return
+                
+                text = "📋 **قائمة الطلبات:**\n\n"
+                for code, banned in orders[:50]:
+                    status = "🚫" if banned else "✅"
+                    text += f"{status} `{code}`\n"
+                
+                if len(orders) > 50:
+                    text += f"\n... و {len(orders) - 50} طلب آخر"
+                
+                await event.reply(text)
                 return
             
-            text = "👥 **المستخدمين النشطين:**\n\n"
-            for uid, uname, order, date in users:
-                text += f"• {uname or 'مجهول'} | `{order}` | {date.strftime('%Y-%m-%d')}\n"
-            
-            await event.reply(text)
-            return
-        
-        # طرد مستخدم
-        if message.startswith('/kickuser '):
-            try:
-                uid = int(message.split(' ', 1)[1].strip())
-                cursor.execute("DELETE FROM users WHERE user_id = %s;", (uid,))
+            # إضافة طلب (أو أكثر)
+            if message.startswith('/add ') or message.startswith('/addorder '):
+                parts = message.split(' ', 1)
+                if len(parts) < 2 or not parts[1].strip():
+                    await event.reply("❌ **الاستخدام:**\n`/add رقم1 رقم2 رقم3`\n\nمثال:\n`/add 12345 67890 abcde`")
+                    return
+                
+                codes = parts[1].strip().split()
+                added = []
+                for code in codes:
+                    code = code.lower().strip()
+                    if code:
+                        cursor.execute("""
+                            INSERT INTO orders (order_code, is_banned)
+                            VALUES (%s, FALSE)
+                            ON CONFLICT (order_code) DO UPDATE SET is_banned = FALSE;
+                        """, (code,))
+                        added.append(code)
                 conn.commit()
-                await event.reply(f"✅ تم طرد المستخدم: `{uid}`")
-            except:
-                await event.reply("❌ الرجاء إدخال ID صحيح")
-            return
-        
-        # الإحصائيات
-        if message == '/stats':
-            cursor.execute("SELECT COUNT(*) FROM orders WHERE is_banned = FALSE;")
-            allowed = cursor.fetchone()[0]
-            cursor.execute("SELECT COUNT(*) FROM orders WHERE is_banned = TRUE;")
-            banned = cursor.fetchone()[0]
-            cursor.execute("SELECT COUNT(*) FROM users;")
-            users_count = cursor.fetchone()[0]
-            cursor.execute("SELECT COUNT(*) FROM usage_log;")
-            logs_count = cursor.fetchone()[0]
+                await event.reply(f"✅ تم إضافة {len(added)} طلب:\n`{', '.join(added)}`")
+                return
             
-            text = f"""📊 **إحصائيات IKON STORE:**
+            # حظر طلب (أو أكثر)
+            if message.startswith('/ban ') or message.startswith('/banorder '):
+                parts = message.split(' ', 1)
+                if len(parts) < 2 or not parts[1].strip():
+                    await event.reply("❌ **الاستخدام:**\n`/ban رقم1 رقم2`")
+                    return
+                
+                codes = parts[1].strip().split()
+                for code in codes:
+                    cursor.execute("UPDATE orders SET is_banned = TRUE WHERE order_code = %s;", (code.lower(),))
+                conn.commit()
+                await event.reply(f"🚫 تم حظر: `{', '.join(codes)}`")
+                return
+            
+            # إلغاء حظر
+            if message.startswith('/unban ') or message.startswith('/unbanorder '):
+                parts = message.split(' ', 1)
+                if len(parts) < 2 or not parts[1].strip():
+                    await event.reply("❌ **الاستخدام:**\n`/unban رقم1 رقم2`")
+                    return
+                
+                codes = parts[1].strip().split()
+                for code in codes:
+                    cursor.execute("UPDATE orders SET is_banned = FALSE WHERE order_code = %s;", (code.lower(),))
+                conn.commit()
+                await event.reply(f"✅ تم إلغاء حظر: `{', '.join(codes)}`")
+                return
+            
+            # حذف طلب
+            if message.startswith('/del ') or message.startswith('/deleteorder '):
+                parts = message.split(' ', 1)
+                if len(parts) < 2 or not parts[1].strip():
+                    await event.reply("❌ **الاستخدام:**\n`/del رقم1 رقم2`")
+                    return
+                
+                codes = parts[1].strip().split()
+                for code in codes:
+                    cursor.execute("DELETE FROM orders WHERE order_code = %s;", (code.lower(),))
+                conn.commit()
+                await event.reply(f"🗑️ تم حذف: `{', '.join(codes)}`")
+                return
+            
+            # عرض المستخدمين
+            if message == '/users':
+                cursor.execute("""
+                    SELECT user_id, username, order_id, verified_at 
+                    FROM users ORDER BY verified_at DESC LIMIT 20;
+                """)
+                users = cursor.fetchall()
+                if not users:
+                    await event.reply("📭 لا يوجد مستخدمين نشطين.")
+                    return
+                
+                text = "👥 **المستخدمين النشطين:**\n\n"
+                for uid, uname, order, date in users:
+                    text += f"• {uname or 'مجهول'} | `{order}` | {date.strftime('%Y-%m-%d')}\n"
+                
+                await event.reply(text)
+                return
+            
+            # طرد مستخدم
+            if message.startswith('/kick ') or message.startswith('/kickuser '):
+                parts = message.split(' ', 1)
+                if len(parts) < 2 or not parts[1].strip():
+                    await event.reply("❌ **الاستخدام:**\n`/kick user_id`")
+                    return
+                try:
+                    uid = int(parts[1].strip())
+                    cursor.execute("DELETE FROM users WHERE user_id = %s;", (uid,))
+                    conn.commit()
+                    await event.reply(f"✅ تم طرد المستخدم: `{uid}`")
+                except:
+                    await event.reply("❌ الرجاء إدخال ID صحيح")
+                return
+            
+            # الإحصائيات
+            if message == '/stats':
+                cursor.execute("SELECT COUNT(*) FROM orders WHERE is_banned = FALSE;")
+                allowed = cursor.fetchone()[0]
+                cursor.execute("SELECT COUNT(*) FROM orders WHERE is_banned = TRUE;")
+                banned = cursor.fetchone()[0]
+                cursor.execute("SELECT COUNT(*) FROM users;")
+                users_count = cursor.fetchone()[0]
+                cursor.execute("SELECT COUNT(*) FROM usage_log;")
+                logs_count = cursor.fetchone()[0]
+                
+                text = f"""📊 **إحصائيات IKON STORE:**
 
 ✅ طلبات مفعلة: {allowed}
 🚫 طلبات محظورة: {banned}
 👥 مستخدمين نشطين: {users_count}
 📝 إجمالي العمليات: {logs_count}
 """
-            await event.reply(text)
-            return
-        
-        # السجلات
-        if message == '/logs':
-            cursor.execute("""
-                SELECT username, account, timestamp 
-                FROM usage_log ORDER BY timestamp DESC LIMIT 10;
-            """)
-            logs = cursor.fetchall()
-            if not logs:
-                await event.reply("📭 لا توجد سجلات.")
+                await event.reply(text)
                 return
             
-            text = "📝 **آخر 10 عمليات:**\n\n"
-            for uname, account, date in logs:
-                text += f"• {uname} → `{account}` | {date.strftime('%H:%M %d/%m')}\n"
+            # السجلات
+            if message == '/logs':
+                cursor.execute("""
+                    SELECT username, account, timestamp 
+                    FROM usage_log ORDER BY timestamp DESC LIMIT 10;
+                """)
+                logs = cursor.fetchall()
+                if not logs:
+                    await event.reply("📭 لا توجد سجلات.")
+                    return
+                
+                text = "📝 **آخر 10 عمليات:**\n\n"
+                for uname, account, date in logs:
+                    text += f"• {uname} → `{account}` | {date.strftime('%H:%M %d/%m')}\n"
+                
+                await event.reply(text)
+                return
             
-            await event.reply(text)
+            # أمر غير معروف
+            await event.reply(f"❓ أمر غير معروف: `{message}`\n\nأرسل /help لعرض الأوامر المتاحة.")
             return
     
     # ==================== منطق المستخدم العادي ====================
