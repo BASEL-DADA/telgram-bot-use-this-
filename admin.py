@@ -1,22 +1,19 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 import os
 import psycopg2
-import urllib.parse as urlparse
 from telethon.sync import TelegramClient
 import asyncio
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-here')
 
-# إعداد الاتصال بقاعدة البيانات من Heroku DATABASE_URL
-url = urlparse.urlparse(os.environ['DATABASE_URL'])
-conn = psycopg2.connect(
-    dbname=url.path[1:],
-    user=url.username,
-    password=url.password,
-    host=url.hostname,
-    port=url.port
-)
+# الاتصال بقاعدة بيانات Neon PostgreSQL
+DATABASE_URL = os.environ.get('DATABASE_URL')
+
+if not DATABASE_URL:
+    raise ValueError("❌ DATABASE_URL غير موجود! يرجى إضافته في متغيرات البيئة")
+
+conn = psycopg2.connect(DATABASE_URL, sslmode='require')
 cursor = conn.cursor()
 
 # إعداد Telegram Client للإرسال

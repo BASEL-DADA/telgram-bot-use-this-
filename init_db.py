@@ -1,17 +1,13 @@
 import os
 import psycopg2
-import urllib.parse as urlparse
 
-# استخراج معلومات الاتصال من Heroku DATABASE_URL
-url = urlparse.urlparse(os.environ['DATABASE_URL'])
+# الاتصال بقاعدة بيانات Neon PostgreSQL
+DATABASE_URL = os.environ.get('DATABASE_URL')
 
-conn = psycopg2.connect(
-    dbname=url.path[1:],
-    user=url.username,
-    password=url.password,
-    host=url.hostname,
-    port=url.port
-)
+if not DATABASE_URL:
+    raise ValueError("❌ DATABASE_URL غير موجود! يرجى إضافته في متغيرات البيئة")
+
+conn = psycopg2.connect(DATABASE_URL, sslmode='require')
 cursor = conn.cursor()
 
 print("🔧 جاري إنشاء الجداول...")

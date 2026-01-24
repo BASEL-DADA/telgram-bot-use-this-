@@ -1,0 +1,47 @@
+name: ikon-store-bot
+region: fra
+
+# متغيرات البيئة المشتركة
+envs:
+  - key: DATABASE_URL
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+  - key: API_ID
+    scope: RUN_TIME
+    type: SECRET
+  - key: API_HASH
+    scope: RUN_TIME
+    type: SECRET
+  - key: SESSION_STRING
+    scope: RUN_TIME
+    type: SECRET
+  - key: SECRET_KEY
+    scope: RUN_TIME
+    type: SECRET
+
+services:
+  # لوحة التحكم (Flask Web App)
+  - name: admin-panel
+    github:
+      repo: BASEL-DADA/telgram-bot-use-this-
+      branch: main
+      deploy_on_push: true
+    build_command: pip install -r requirements.txt && python init_db.py
+    run_command: gunicorn admin:app --bind 0.0.0.0:$PORT
+    http_port: 8080
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    source_dir: /
+
+workers:
+  # بوت التليجرام (Worker)
+  - name: telegram-bot
+    github:
+      repo: BASEL-DADA/telgram-bot-use-this-
+      branch: main
+      deploy_on_push: true
+    build_command: pip install -r requirements.txt
+    run_command: python main.py
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    source_dir: /
