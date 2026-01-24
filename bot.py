@@ -449,16 +449,18 @@ async def handle_steam_reply(event):
         active_request = None
         return
     
-    # ==================== تجري عملية دخول ====================
-    elif "تجرى عملية الدخول" in message or "جاري" in message:
-        print(f"🔵 عملية دخول: {message}")
-        for user_id in list(waiting_requests.keys()):
-            await bot.send_message(user_id, f"⏳ {message}")
-        # لا نحذف من الانتظار - ننتظر الرمز أو الـ timeout
+    # ==================== تجري عملية دخول (الحساب مشغول) ====================
+    elif "تجرى عملية الدخول" in message or "حاليا تجرى" in message:
+        print(f"🔵 الحساب مشغول: {message}")
+        for user_id, data in list(waiting_requests.items()):
+            await bot.send_message(user_id, f"⚠️ {message}")
+            del waiting_requests[user_id]
+        active_request = None
+        # نغلق الطلب لأن الحساب مشغول
         return
     
     # ==================== رمز التحقق ====================
-    elif "رمز تحقق" in message or "رمز التحقق" in message or "الرمز" in message:
+    elif "رمز تحقق" in message or "رمز التحقق" in message:
         print(f"📩 رمز تحقق: {message}")
         
         # إذا لا يوجد أحد ينتظر
@@ -481,8 +483,6 @@ async def handle_steam_reply(event):
                 
                 for user_id, data in list(waiting_requests.items()):
                     if data['account'].lower().strip() == account_name:
-                        # إرسال رسالة تسجيل الدخول أولاً ثم الرمز
-                        await bot.send_message(user_id, messages['login_message'])
                         await bot.send_message(user_id, f"✅ {message}")
                         print(f"📨 أرسلنا الكود للمستخدم {user_id}")
                         del waiting_requests[user_id]
@@ -495,7 +495,6 @@ async def handle_steam_reply(event):
         # طريقة 2: إذا لم نجد الحساب، نرسل لأول شخص ينتظر
         if not account_found and waiting_requests:
             user_id = list(waiting_requests.keys())[0]
-            await bot.send_message(user_id, messages['login_message'])
             await bot.send_message(user_id, f"✅ {message}")
             print(f"📨 أرسلنا الكود للمستخدم الأول {user_id}")
             del waiting_requests[user_id]
