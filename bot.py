@@ -292,7 +292,7 @@ async def handle_bot_message(event):
             # السجلات
             if message == '/logs':
                 cursor.execute("""
-                    SELECT username, account, timestamp 
+                    SELECT username, account, order_id 
                     FROM usage_log ORDER BY timestamp DESC LIMIT 10;
                 """)
                 logs = cursor.fetchall()
@@ -301,8 +301,8 @@ async def handle_bot_message(event):
                     return
                 
                 text = "📝 **آخر 10 عمليات:**\n\n"
-                for uname, account, date in logs:
-                    text += f"• {uname} → `{account}` | {date.strftime('%H:%M %d/%m')}\n"
+                for uname, account, order_code in logs:
+                    text += f"• {uname} → `{account}` | #{order_code}\n"
                 
                 await event.reply(text)
                 return
