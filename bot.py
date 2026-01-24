@@ -115,13 +115,23 @@ def auto_insert_orders():
     print("✅ الطلبات المسموحة أُضيفت تلقائيًا.")
 
 # ==================== معالجة رسائل البوت ====================
-@bot.on(events.NewMessage)
+@bot.on(events.NewMessage(incoming=True))
 async def handle_bot_message(event):
+    # فقط الرسائل الخاصة الواردة
     if not event.is_private:
+        return
+    
+    # تجاهل الرسائل المرسلة من البوت نفسه
+    if event.out:
         return
     
     global active_request
     sender = await event.get_sender()
+    
+    # تجاهل البوتات
+    if sender.bot:
+        return
+    
     message = event.raw_text.strip()
     user_id = sender.id
     username = sender.username
@@ -162,7 +172,7 @@ async def handle_bot_message(event):
                 return
             
             # إضافة طلب (أو أكثر)
-            if message.startswith('/add ') or message.startswith('/addorder '):
+            if message.startswith('/add') or message.startswith('/addorder'):
                 parts = message.split(' ', 1)
                 if len(parts) < 2 or not parts[1].strip():
                     await event.reply("❌ **الاستخدام:**\n`/add رقم1 رقم2 رقم3`\n\nمثال:\n`/add 12345 67890 abcde`")
@@ -184,7 +194,7 @@ async def handle_bot_message(event):
                 return
             
             # حظر طلب (أو أكثر)
-            if message.startswith('/ban ') or message.startswith('/banorder '):
+            if message.startswith('/ban') or message.startswith('/banorder'):
                 parts = message.split(' ', 1)
                 if len(parts) < 2 or not parts[1].strip():
                     await event.reply("❌ **الاستخدام:**\n`/ban رقم1 رقم2`")
@@ -198,7 +208,7 @@ async def handle_bot_message(event):
                 return
             
             # إلغاء حظر
-            if message.startswith('/unban ') or message.startswith('/unbanorder '):
+            if message.startswith('/unban'):
                 parts = message.split(' ', 1)
                 if len(parts) < 2 or not parts[1].strip():
                     await event.reply("❌ **الاستخدام:**\n`/unban رقم1 رقم2`")
@@ -212,7 +222,7 @@ async def handle_bot_message(event):
                 return
             
             # حذف طلب
-            if message.startswith('/del ') or message.startswith('/deleteorder '):
+            if message.startswith('/del'):
                 parts = message.split(' ', 1)
                 if len(parts) < 2 or not parts[1].strip():
                     await event.reply("❌ **الاستخدام:**\n`/del رقم1 رقم2`")
@@ -244,7 +254,7 @@ async def handle_bot_message(event):
                 return
             
             # طرد مستخدم
-            if message.startswith('/kick ') or message.startswith('/kickuser '):
+            if message.startswith('/kick'):
                 parts = message.split(' ', 1)
                 if len(parts) < 2 or not parts[1].strip():
                     await event.reply("❌ **الاستخدام:**\n`/kick user_id`")
