@@ -341,40 +341,93 @@ async def handle_steam_reply(event):
     global active_request
     message = event.raw_text.strip()
     
+    print(f"📨 رسالة من Steam Bot: {message}")
+    
+    # ==================== حساب معلق ====================
     if "معلق" in message:
         print(f"🔴 رد معلق: {message}")
+        # استبدال جميع الأشكال المحتملة
         fixed_message = message.replace("@ skytvx", "@ikon.storee")
+        fixed_message = fixed_message.replace("@skytvx", "@ikon.storee")
         for user_id, data in list(waiting_requests.items()):
             await bot.send_message(user_id, f"🚫 {fixed_message}")
             del waiting_requests[user_id]
-            active_request = None
+        active_request = None
         return
     
-    elif "تجرى عملية الدخول" in message:
+    # ==================== تجري عملية دخول ====================
+    elif "تجرى عملية الدخول" in message or "جاري" in message:
         print(f"🔵 عملية دخول: {message}")
-        for user_id in waiting_requests:
-            await bot.send_message(user_id, message)
+        for user_id in list(waiting_requests.keys()):
+            await bot.send_message(user_id, f"⏳ {message}")
+        # لا نحذف من الانتظار - ننتظر الرمز أو الـ timeout
         return
     
-    elif "رمز تحقق لحساب" in message and "هو" in message:
+    # ==================== رمز التحقق ====================
+    elif "رمز تحقق" in message or "رمز التحقق" in message or "الرمز" in message:
         print(f"📩 رمز تحقق: {message}")
+        
+        # إذا لا يوجد أحد ينتظر
+        if not waiting_requests:
+            print("⚠️ لا يوجد أحد ينتظر رمز")
+            return
+        
+        # محاولة استخراج اسم الحساب
+        account_found = False
         try:
-            account_part = message.split("رمز تحقق لحساب")[1]
-            account_name = account_part.split(",")[0].strip().lower()
-            
-            for user_id, data in list(waiting_requests.items()):
-                if data['account'].lower().strip() == account_name:
-                    await bot.send_message(user_id, message)
-                    print(f"📨 أرسلنا الكود للمستخدم {user_id}")
-                    del waiting_requests[user_id]
-                    active_request = None
-                    break
-            else:
-                print(f"⚠️ لا يوجد شخص بانتظار: {account_name}")
+            # طريقة 1: "رمز تحقق لحساب X, هو Y"
+            if "رمز تحقق لحساب" in message:
+                account_part = message.split("رمز تحقق لحساب")[1]
+                if "," in account_part:
+                    account_name = account_part.split(",")[0].strip().lower()
+                elif "هو" in account_part:
+                    account_name = account_part.split("هو")[0].strip().lower()
+                else:
+                    account_name = account_part.split()[0].strip().lower()
+                
+                for user_id, data in list(waiting_requests.items()):
+                    if data['account'].lower().strip() == account_name:
+                        await bot.send_message(user_id, f"✅ {message}")
+                        print(f"📨 أرسلنا الكود للمستخدم {user_id}")
+                        del waiting_requests[user_id]
+                        active_request = None
+                        account_found = True
+                        break
         except Exception as e:
-            print(f"❌ خطأ: {e}")
+            print(f"❌ خطأ في تحليل اسم الحساب: {e}")
+        
+        # طريقة 2: إذا لم نجد الحساب، نرسل لأول شخص ينتظر
+        if not account_found and waiting_requests:
+            user_id = list(waiting_requests.keys())[0]
+            await bot.send_message(user_id, f"✅ {message}")
+            print(f"📨 أرسلنا الكود للمستخدم الأول {user_id}")
+            del waiting_requests[user_id]
+            active_request = None
+        
+        return
+    
+    # ==================== حساب غير موجود ====================
+    elif "غير موجود" in message or "not found" in message.lower() or "خطأ" in message:
+        print(f"🔴 حساب غير موجود: {message}")
+        for user_id, data in list(waiting_requests.items()):
+            await bot.send_message(user_id, f"❌ {message}")
+            del waiting_requests[user_id]
+        active_request = None
+        return
+    
+    # ==================== رسالة أخرى غير معروفة ====================
     else:
-        print(f"📄 رد غير متعلق: {message}")
+        print(f"📄 رسالة أخرى: {message}")
+        # إذا الرسالة تحتوي على أرقام (ربما رمز تحقق بصيغة مختلفة)
+        import re
+        codes = re.findall(r'\b[A-Z0-9]{4,8}\b', message)
+        if codes and waiting_requests:
+            # ربما هذا رمز تحقق
+            user_id = list(waiting_requests.keys())[0]
+            await bot.send_message(user_id, f"📩 {message}")
+            print(f"📨 أرسلنا رسالة محتملة للمستخدم {user_id}")
+            del waiting_requests[user_id]
+            active_request = None
 
 # ==================== التشغيل ====================
 async def main():
