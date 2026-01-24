@@ -34,10 +34,12 @@ from telethon import TelegramClient as BotClient
 bot = TelegramClient('bot', api_id, api_hash)
 
 steam_bot_username = 'PoweredSteamBot'
+bot_username = 'ORDERSIKON_bot'  # يوزرنيم البوت الجديد
 
 waiting_requests = {}
 active_request = None
 welcomed_users = set()
+auto_replied_users = set()  # لتجنب الرد المتكرر
 
 # ==================== الرسائل ====================
 messages = {
@@ -334,6 +336,47 @@ async def handle_bot_message(event):
     
     asyncio.create_task(check_timeout())
     await event.reply(messages['login_message'])
+
+# ==================== رد تلقائي على حسابك الشخصي ====================
+@userbot.on(events.NewMessage(incoming=True))
+async def auto_reply_personal(event):
+    """رد تلقائي على أي شخص يراسل حسابك الشخصي"""
+    if not event.is_private:
+        return
+    
+    sender = await event.get_sender()
+    
+    # تجاهل البوتات
+    if sender.bot:
+        return
+    
+    # تجاهل @PoweredSteamBot
+    if sender.username and sender.username.lower() == steam_bot_username.lower():
+        return
+    
+    # تجاهل نفسك
+    if event.out:
+        return
+    
+    user_id = sender.id
+    
+    # رد مرة واحدة فقط لكل مستخدم (كل 24 ساعة)
+    if user_id in auto_replied_users:
+        return
+    
+    auto_replied_users.add(user_id)
+    
+    # الرسالة التلقائية
+    auto_message = f"""👋 أهلاً بك!
+
+للحصول على رموز التحقق وخدمات **IKON STORE**، يرجى التواصل مع البوت الرسمي:
+
+🤖 @{bot_username}
+
+شكراً لتفهمك! 🙏"""
+    
+    await event.reply(auto_message)
+    print(f"📤 رد تلقائي على {sender.first_name or sender.username} ({user_id})")
 
 # ==================== معالجة ردود Steam Bot ====================
 @userbot.on(events.NewMessage(from_users=steam_bot_username))
