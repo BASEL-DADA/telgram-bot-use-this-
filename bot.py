@@ -396,7 +396,6 @@ async def handle_bot_message(event):
             active_request = None
     
     asyncio.create_task(check_timeout())
-    await event.reply(messages['checking_account'])
 
 # ==================== رد تلقائي على حسابك الشخصي ====================
 @userbot.on(events.NewMessage(incoming=True))
