@@ -6,7 +6,7 @@ import os
 from datetime import datetime
 from db import (
     is_user_verified, add_verified_user, is_allowed_order, is_banned_order, 
-    log_usage, conn, cursor, get_order_code_for_user
+    log_usage, get_connection, get_order_code_for_user
 )
 
 # ==================== الإعدادات ====================
@@ -105,13 +105,15 @@ def auto_insert_orders():
         # أرقام جديدة
         "4256723", "53463463", "zaid3424334"
     ]
-    for order in allowed_orders:
-        cursor.execute("""
-            INSERT INTO orders (order_code, is_banned)
-            VALUES (%s, FALSE)
-            ON CONFLICT (order_code) DO NOTHING;
-        """, (order.lower(),))
-    conn.commit()
+    connection = get_connection()
+    with connection.cursor() as cursor:
+        for order in allowed_orders:
+            cursor.execute("""
+                INSERT INTO orders (order_code, is_banned)
+                VALUES (%s, FALSE)
+                ON CONFLICT (order_code) DO NOTHING;
+            """, (order.lower(),))
+        connection.commit()
     print("✅ الطلبات المسموحة أُضيفت تلقائيًا.")
 
 # ==================== معالجة رسائل البوت ====================
@@ -154,8 +156,10 @@ async def handle_bot_message(event):
             
             # عرض الطلبات
             if message == '/orders':
-                cursor.execute("SELECT order_code, is_banned FROM orders ORDER BY order_code;")
-                orders = cursor.fetchall()
+                connection = get_connection()
+                with connection.cursor() as cursor:
+                    cursor.execute("SELECT order_code, is_banned FROM orders ORDER BY order_code;")
+                    orders = cursor.fetchall()
                 if not orders:
                     await event.reply("📭 لا توجد طلبات.")
                     return
@@ -180,16 +184,18 @@ async def handle_bot_message(event):
                 
                 codes = parts[1].strip().split()
                 added = []
-                for code in codes:
-                    code = code.lower().strip()
-                    if code:
-                        cursor.execute("""
-                            INSERT INTO orders (order_code, is_banned)
-                            VALUES (%s, FALSE)
-                            ON CONFLICT (order_code) DO UPDATE SET is_banned = FALSE;
-                        """, (code,))
-                        added.append(code)
-                conn.commit()
+                connection = get_connection()
+                with connection.cursor() as cursor:
+                    for code in codes:
+                        code = code.lower().strip()
+                        if code:
+                            cursor.execute("""
+                                INSERT INTO orders (order_code, is_banned)
+                                VALUES (%s, FALSE)
+                                ON CONFLICT (order_code) DO UPDATE SET is_banned = FALSE;
+                            """, (code,))
+                            added.append(code)
+                    connection.commit()
                 await event.reply(f"✅ تم إضافة {len(added)} طلب:\n`{', '.join(added)}`")
                 return
             
@@ -201,9 +207,11 @@ async def handle_bot_message(event):
                     return
                 
                 codes = parts[1].strip().split()
-                for code in codes:
-                    cursor.execute("UPDATE orders SET is_banned = TRUE WHERE order_code = %s;", (code.lower(),))
-                conn.commit()
+                connection = get_connection()
+                with connection.cursor() as cursor:
+                    for code in codes:
+                        cursor.execute("UPDATE orders SET is_banned = TRUE WHERE order_code = %s;", (code.lower(),))
+                    connection.commit()
                 await event.reply(f"🚫 تم حظر: `{', '.join(codes)}`")
                 return
             
@@ -215,9 +223,11 @@ async def handle_bot_message(event):
                     return
                 
                 codes = parts[1].strip().split()
-                for code in codes:
-                    cursor.execute("UPDATE orders SET is_banned = FALSE WHERE order_code = %s;", (code.lower(),))
-                conn.commit()
+                connection = get_connection()
+                with connection.cursor() as cursor:
+                    for code in codes:
+                        cursor.execute("UPDATE orders SET is_banned = FALSE WHERE order_code = %s;", (code.lower(),))
+                    connection.commit()
                 await event.reply(f"✅ تم إلغاء حظر: `{', '.join(codes)}`")
                 return
             
@@ -229,19 +239,23 @@ async def handle_bot_message(event):
                     return
                 
                 codes = parts[1].strip().split()
-                for code in codes:
-                    cursor.execute("DELETE FROM orders WHERE order_code = %s;", (code.lower(),))
-                conn.commit()
+                connection = get_connection()
+                with connection.cursor() as cursor:
+                    for code in codes:
+                        cursor.execute("DELETE FROM orders WHERE order_code = %s;", (code.lower(),))
+                    connection.commit()
                 await event.reply(f"🗑️ تم حذف: `{', '.join(codes)}`")
                 return
             
             # عرض المستخدمين
             if message == '/users':
-                cursor.execute("""
-                    SELECT user_id, username, order_id, verified_at 
-                    FROM users ORDER BY verified_at DESC LIMIT 20;
-                """)
-                users = cursor.fetchall()
+                connection = get_connection()
+                with connection.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT user_id, username, order_id, verified_at 
+                        FROM users ORDER BY verified_at DESC LIMIT 20;
+                    """)
+                    users = cursor.fetchall()
                 if not users:
                     await event.reply("📭 لا يوجد مستخدمين نشطين.")
                     return
@@ -261,8 +275,10 @@ async def handle_bot_message(event):
                     return
                 try:
                     uid = int(parts[1].strip())
-                    cursor.execute("DELETE FROM users WHERE user_id = %s;", (uid,))
-                    conn.commit()
+                    connection = get_connection()
+                    with connection.cursor() as cursor:
+                        cursor.execute("DELETE FROM users WHERE user_id = %s;", (uid,))
+                        connection.commit()
                     await event.reply(f"✅ تم طرد المستخدم: `{uid}`")
                 except:
                     await event.reply("❌ الرجاء إدخال ID صحيح")
@@ -270,14 +286,16 @@ async def handle_bot_message(event):
             
             # الإحصائيات
             if message == '/stats':
-                cursor.execute("SELECT COUNT(*) FROM orders WHERE is_banned = FALSE;")
-                allowed = cursor.fetchone()[0]
-                cursor.execute("SELECT COUNT(*) FROM orders WHERE is_banned = TRUE;")
-                banned = cursor.fetchone()[0]
-                cursor.execute("SELECT COUNT(*) FROM users;")
-                users_count = cursor.fetchone()[0]
-                cursor.execute("SELECT COUNT(*) FROM usage_log;")
-                logs_count = cursor.fetchone()[0]
+                connection = get_connection()
+                with connection.cursor() as cursor:
+                    cursor.execute("SELECT COUNT(*) FROM orders WHERE is_banned = FALSE;")
+                    allowed = cursor.fetchone()[0]
+                    cursor.execute("SELECT COUNT(*) FROM orders WHERE is_banned = TRUE;")
+                    banned = cursor.fetchone()[0]
+                    cursor.execute("SELECT COUNT(*) FROM users;")
+                    users_count = cursor.fetchone()[0]
+                    cursor.execute("SELECT COUNT(*) FROM usage_log;")
+                    logs_count = cursor.fetchone()[0]
                 
                 text = f"""📊 **إحصائيات IKON STORE:**
 
@@ -291,11 +309,13 @@ async def handle_bot_message(event):
             
             # السجلات
             if message == '/logs':
-                cursor.execute("""
-                    SELECT username, account, order_id 
-                    FROM usage_log ORDER BY timestamp DESC LIMIT 10;
-                """)
-                logs = cursor.fetchall()
+                connection = get_connection()
+                with connection.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT username, account, order_id 
+                        FROM usage_log ORDER BY timestamp DESC LIMIT 10;
+                    """)
+                    logs = cursor.fetchall()
                 if not logs:
                     await event.reply("📭 لا توجد سجلات.")
                     return
@@ -315,8 +335,10 @@ async def handle_bot_message(event):
     
     # أمر الخروج
     if message.lower() == "exit":
-        cursor.execute("DELETE FROM users WHERE user_id = %s;", (user_id,))
-        conn.commit()
+        connection = get_connection()
+        with connection.cursor() as cursor:
+            cursor.execute("DELETE FROM users WHERE user_id = %s;", (user_id,))
+            connection.commit()
         if user_id in welcomed_users:
             welcomed_users.remove(user_id)
         if user_id in waiting_requests:
