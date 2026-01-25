@@ -86,15 +86,10 @@ https://www.youtube.com/watch?v=FzFGnQ2asvQ
 """
 
 user_info = """
-ℹ️ **معلومات البوت:**
-
-🤖 **الاسم:** IKON STORE Bot
-📌 **الوظيفة:** الحصول على رموز تحقق Steam
-
-📞 **للتواصل:** @ikonnstem
-
 🎬 **شرح الاستخدام:**
 https://www.youtube.com/watch?v=FzFGnQ2asvQ
+
+📸 **للتواصل:** @ikon.storee (انستغرام)
 """
 
 # ==================== فحص الأدمن ====================
@@ -125,9 +120,14 @@ admin_help = """
 /users - عرض المستخدمين النشطين
 /kick user_id - طرد مستخدم
 
+� **الرسائل:**
+/msg all الرسالة - إرسال للجميع
+/msg رقم_الطلب الرسالة - إرسال لرقم طلب
+
 📊 **الإحصائيات:**
 /stats - إحصائيات سريعة
 /logs - آخر 10 عمليات
+/logs رقم_الطلب - آخر 20 عملية لرقم طلب
 
 ━━━━━━━━━━━━━━━━━━━━━━
 👤 **أوامر المستخدمين:**
@@ -139,6 +139,9 @@ exit - تسجيل خروج وإدخال رقم طلب جديد
 💡 **أمثلة:**
 `/add 12345 67890 abc123`
 `/ban 12345`
+`/logs 12345`
+`/msg all مرحبا بالجميع`
+`/msg 12345 رسالة خاصة`
 """
 
 # ==================== إدخال الطلبات الافتراضية ====================
@@ -328,7 +331,7 @@ async def handle_bot_message(event):
                 connection = get_connection()
                 with connection.cursor() as cursor:
                     cursor.execute("""
-                        SELECT user_id, username, order_id, verified_at 
+                        SELECT user_id, username, order_id 
                         FROM users ORDER BY verified_at DESC LIMIT 20;
                     """)
                     users = cursor.fetchall()
@@ -337,8 +340,8 @@ async def handle_bot_message(event):
                     return
                 
                 text = "👥 **المستخدمين النشطين:**\n\n"
-                for uid, uname, order, date in users:
-                    text += f"• {uname or 'مجهول'} | `{order}` | {date.strftime('%Y-%m-%d')}\n"
+                for uid, uname, order in users:
+                    text += f"• {uname or 'مجهول'} | `{order}`\n"
                 
                 await event.reply(text)
                 return
@@ -384,23 +387,97 @@ async def handle_bot_message(event):
                 return
             
             # السجلات
-            if message == '/logs':
+            if message == '/logs' or message.startswith('/logs '):
+                parts = message.split(' ', 1)
                 connection = get_connection()
-                with connection.cursor() as cursor:
-                    cursor.execute("""
-                        SELECT username, account, order_id 
-                        FROM usage_log ORDER BY timestamp DESC LIMIT 10;
-                    """)
-                    logs = cursor.fetchall()
-                if not logs:
-                    await event.reply("📭 لا توجد سجلات.")
-                    return
                 
-                text = "📝 **آخر 10 عمليات:**\n\n"
-                for uname, account, order_code in logs:
-                    text += f"• {uname} → `{account}` | #{order_code}\n"
+                if len(parts) > 1 and parts[1].strip():
+                    # البحث برقم طلب معين
+                    order_code = parts[1].strip().lower()
+                    with connection.cursor() as cursor:
+                        cursor.execute("""
+                            SELECT username, account, order_id 
+                            FROM usage_log WHERE LOWER(order_id) = %s ORDER BY timestamp DESC LIMIT 20;
+                        """, (order_code,))
+                        logs = cursor.fetchall()
+                    if not logs:
+                        await event.reply(f"📭 لا توجد سجلات لرقم الطلب: `{order_code}`")
+                        return
+                    
+                    text = f"📝 **آخر 20 عملية لرقم الطلب #{order_code}:**\n\n"
+                    for uname, account, oid in logs:
+                        text += f"• {uname} → `{account}`\n"
+                else:
+                    # عرض آخر 10 عمليات عامة
+                    with connection.cursor() as cursor:
+                        cursor.execute("""
+                            SELECT username, account, order_id 
+                            FROM usage_log ORDER BY timestamp DESC LIMIT 10;
+                        """)
+                        logs = cursor.fetchall()
+                    if not logs:
+                        await event.reply("📭 لا توجد سجلات.")
+                        return
+                    
+                    text = "📝 **آخر 10 عمليات:**\n\n"
+                    for uname, account, order_code in logs:
+                        text += f"• {uname} → `{account}` | #{order_code}\n"
                 
                 await event.reply(text)
+                return
+            
+            # إرسال رسالة للمستخدمين
+            if message.startswith('/msg '):
+                parts = message.split(' ', 2)
+                if len(parts) < 3:
+                    await event.reply("❌ **الاستخدام:**\n`/msg all الرسالة` - إرسال للجميع\n`/msg رقم_الطلب الرسالة` - إرسال لرقم طلب معين")
+                    return
+                
+                target = parts[1].strip().lower()
+                msg_text = parts[2].strip()
+                
+                if not msg_text:
+                    await event.reply("❌ الرجاء كتابة نص الرسالة.")
+                    return
+                
+                connection = get_connection()
+                sent_count = 0
+                failed_count = 0
+                
+                if target == 'all':
+                    # إرسال للجميع
+                    with connection.cursor() as cursor:
+                        cursor.execute("SELECT user_id FROM users;")
+                        all_users = cursor.fetchall()
+                    
+                    for (uid,) in all_users:
+                        try:
+                            await bot.send_message(uid, f"📢 **رسالة من الإدارة:**\n\n{msg_text}")
+                            sent_count += 1
+                        except Exception as e:
+                            print(f"❌ فشل إرسال لـ {uid}: {e}")
+                            failed_count += 1
+                    
+                    await event.reply(f"✅ تم إرسال الرسالة للجميع\n📤 نجح: {sent_count}\n❌ فشل: {failed_count}")
+                else:
+                    # إرسال لرقم طلب معين
+                    with connection.cursor() as cursor:
+                        cursor.execute("SELECT user_id FROM users WHERE LOWER(order_id) = %s;", (target,))
+                        target_users = cursor.fetchall()
+                    
+                    if not target_users:
+                        await event.reply(f"❌ لا يوجد مستخدمين لرقم الطلب: `{target}`")
+                        return
+                    
+                    for (uid,) in target_users:
+                        try:
+                            await bot.send_message(uid, f"📢 **رسالة من الإدارة:**\n\n{msg_text}")
+                            sent_count += 1
+                        except Exception as e:
+                            print(f"❌ فشل إرسال لـ {uid}: {e}")
+                            failed_count += 1
+                    
+                    await event.reply(f"✅ تم إرسال الرسالة لرقم الطلب `{target}`\n📤 نجح: {sent_count}\n❌ فشل: {failed_count}")
                 return
             
             # أمر /info للأدمن أيضاً
