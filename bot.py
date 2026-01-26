@@ -17,7 +17,7 @@ bot_token = os.environ.get("BOT_TOKEN")
 
 # معرفات الأدمن (يمكن إضافة أكثر من واحد)
 ADMIN_IDS = set()
-ADMIN_USERNAMES = {'ikonnstem'}  # يوزرنيم الأدمن
+ADMIN_USERNAMES = {'basel_iii'}  # يوزرنيم الأدمن
 
 if not session_string:
     raise ValueError("❌ SESSION_STRING غير موجود!")
