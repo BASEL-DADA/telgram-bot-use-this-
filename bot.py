@@ -48,6 +48,9 @@ recent_requests = {}
 # وضع الصيانة
 maintenance_mode = False
 
+# المستخدمين المحظورين نهائياً (لا يمكنهم استخدام البوت أو التواصل)
+BLOCKED_USERNAMES = {'hlesteam', 'skytvx'}
+
 # ==================== الرسائل ====================
 messages = {
     'welcome': "👋 أهلاً بك في بوت *IKON STORE*!\n\n🔹 **طريقة الاستخدام:**\n- قم بتسجيل الدخول بالحساب على منصة ستيم.\n- مباشرة بعد تسجيل الدخول، أرسل **اسم الحساب** للبوت هنا.\n- انتظر قليلًا، وسيصلك رمز التحقق خلال دقائق.\n\n⚠️ **ملاحظة:** يمنع مشاركة الحسابات، وأي مشاركة ستؤدي إلى **سحب الحساب نهائيًا**.",
@@ -190,6 +193,10 @@ async def handle_bot_message(event):
     message = event.raw_text.strip()
     user_id = sender.id
     username = sender.username
+    
+    # تجاهل المستخدمين المحظورين تماماً (بدون أي رد)
+    if username and username.lower() in BLOCKED_USERNAMES:
+        return
     
     # ==================== أوامر المستخدمين العاديين ====================
     if message.startswith('/') and not is_admin(user_id, username):
@@ -596,6 +603,15 @@ async def handle_bot_message(event):
     
     asyncio.create_task(check_timeout())
     asyncio.create_task(cleanup_recent())
+
+# ==================== تجاهل الرسائل من المحظورين على حسابك الشخصي ====================
+@userbot.on(events.NewMessage(incoming=True))
+async def ignore_blocked_users(event):
+    sender = await event.get_sender()
+    if sender and sender.username and sender.username.lower() in BLOCKED_USERNAMES:
+        # تجاهل تام - لا رد
+        return
+    # باقي الرسائل تُعالج بواسطة handlers أخرى
 
 # ==================== معالجة ردود Steam Bot ====================
 @userbot.on(events.NewMessage(from_users=steam_bot_username))
