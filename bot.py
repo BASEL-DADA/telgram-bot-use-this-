@@ -131,6 +131,7 @@ admin_help = """
 /stats - إحصائيات سريعة
 /logs - آخر 10 عمليات
 /logs رقم_الطلب - آخر 20 عملية لرقم طلب
+/userlogs اسم_المستخدم - آخر 30 عملية لمستخدم
 
 ━━━━━━━━━━━━━━━━━━━━━━
 👤 **أوامر المستخدمين:**
@@ -143,6 +144,7 @@ exit - تسجيل خروج وإدخال رقم طلب جديد
 `/add 12345 67890 abc123`
 `/ban 12345`
 `/logs 12345`
+`/userlogs basel_iii`
 `/msg all مرحبا بالجميع`
 `/msg 12345 رسالة خاصة`
 """
@@ -429,6 +431,39 @@ async def handle_bot_message(event):
                     text = "📝 **آخر 10 عمليات:**\n\n"
                     for uname, account, order_code in logs:
                         text += f"• {uname} → `{account}` | #{order_code}\n"
+                
+                await event.reply(text)
+                return
+            
+            # سجلات مستخدم معين باسم المستخدم (username)
+            if message.startswith('/userlogs '):
+                parts = message.split(' ', 1)
+                if len(parts) < 2 or not parts[1].strip():
+                    await event.reply("❌ **الاستخدام:**\n`/userlogs اسم_المستخدم`\n\nمثال:\n`/userlogs basel_iii`")
+                    return
+                
+                target_username = parts[1].strip().lower().replace('@', '')
+                connection = get_connection()
+                
+                with connection.cursor() as cursor:
+                    # البحث باسم المستخدم
+                    cursor.execute("""
+                        SELECT account, order_id, timestamp 
+                        FROM usage_log 
+                        WHERE LOWER(username) = %s OR LOWER(username) = %s
+                        ORDER BY timestamp DESC 
+                        LIMIT 30;
+                    """, (target_username, '@' + target_username))
+                    logs = cursor.fetchall()
+                
+                if not logs:
+                    await event.reply(f"📭 لا توجد سجلات للمستخدم: `@{target_username}`")
+                    return
+                
+                text = f"📝 **آخر 30 عملية للمستخدم @{target_username}:**\n\n"
+                for account, order_id, timestamp in logs:
+                    time_str = timestamp.strftime('%Y-%m-%d %H:%M') if timestamp else ''
+                    text += f"• `{account}` | #{order_id} | {time_str}\n"
                 
                 await event.reply(text)
                 return
