@@ -57,6 +57,31 @@ maintenance_mode = False
 # المستخدمين المحظورين نهائياً (لا يمكنهم استخدام البوت أو التواصل)
 BLOCKED_USERNAMES = {'hlesteam', 'skytvx'}
 
+# ==================== دالة تنظيف الرسائل ====================
+def clean_message(text):
+    """تنظيف الرسائل من أي ذكر لحلّة ستور أو 7LE STORE"""
+    # قائمة النصوص المراد حذفها
+    remove_texts = [
+        "-المتجر الأفضل حلّة ستور || 7LE STORE-",
+        "المتجر الأفضل حلّة ستور || 7LE STORE",
+        "حلّة ستور || 7LE STORE",
+        "حلّة ستور",
+        "حلة ستور",
+        "7LE STORE",
+        "7le store",
+        "7LE",
+    ]
+    
+    cleaned = text
+    for remove_text in remove_texts:
+        cleaned = cleaned.replace(remove_text, "")
+    
+    # تنظيف الأسطر الفارغة الزائدة
+    lines = [line for line in cleaned.split('\n') if line.strip() and line.strip() != '-' and line.strip() != '||']
+    cleaned = '\n'.join(lines)
+    
+    return cleaned.strip()
+
 # ==================== الرسائل ====================
 messages = {
     'welcome': "👋 أهلاً بك في بوت *IKON STORE*!\n\n🔹 **طريقة الاستخدام:**\n- قم بتسجيل الدخول بالحساب على منصة ستيم.\n- مباشرة بعد تسجيل الدخول، أرسل **اسم الحساب** للبوت هنا.\n- انتظر قليلًا، وسيصلك رمز التحقق خلال دقائق.\n\n⚠️ **ملاحظة:** يمنع مشاركة الحسابات، وأي مشاركة ستؤدي إلى **سحب الحساب نهائيًا**.",
@@ -697,8 +722,9 @@ async def handle_steam_reply(event):
     # "الحساب جاهز عزيزي العميل، الآن قم بتسجيل الدخول على الحساب ⁨xxx⁩ عبر منصة ستيم"
     if "الحساب جاهز" in message or "قم بتسجيل الدخول" in message:
         print(f"✅ الحساب جاهز: {message}")
+        cleaned_msg = clean_message(message)
         for user_id, data in list(waiting_requests.items()):
-            await bot.send_message(user_id, f"✅ {message}")
+            await bot.send_message(user_id, f"✅ {cleaned_msg}")
         return
     
     # ==================== رقم الطلب موجود (قبل الكود) ====================
@@ -714,10 +740,11 @@ async def handle_steam_reply(event):
         print(f"📩 رمز تحقق: {message}")
         
         account_found = False
+        cleaned_msg = clean_message(message)
         
         # إرسال الكود لجميع من ينتظرون
         for uid, data in list(waiting_requests.items()):
-            await bot.send_message(uid, f"✅ {message}")
+            await bot.send_message(uid, f"✅ {cleaned_msg}")
             print(f"📨 أرسلنا الكود للمستخدم {uid}")
             del waiting_requests[uid]
             account_found = True
@@ -728,7 +755,7 @@ async def handle_steam_reply(event):
         if not account_found and recent_requests:
             for account, data in list(recent_requests.items()):
                 uid = data['user_id']
-                await bot.send_message(uid, f"✅ {message}")
+                await bot.send_message(uid, f"✅ {cleaned_msg}")
                 print(f"📨 أرسلنا الكود للمستخدم {uid} من recent_requests")
                 del recent_requests[account]
                 account_found = True
@@ -744,8 +771,9 @@ async def handle_steam_reply(event):
         print(f"🔴 رد معلق: {message}")
         fixed_message = message.replace("@ skytvx", "@ikon.storee")
         fixed_message = fixed_message.replace("@skytvx", "@ikon.storee")
+        cleaned_msg = clean_message(fixed_message)
         for user_id, data in list(waiting_requests.items()):
-            await bot.send_message(user_id, f"🚫 {fixed_message}")
+            await bot.send_message(user_id, f"🚫 {cleaned_msg}")
             del waiting_requests[user_id]
         active_request = None
         return
@@ -753,8 +781,9 @@ async def handle_steam_reply(event):
     # ==================== تجري عملية دخول (الحساب مشغول) ====================
     if "تجرى عملية الدخول" in message or "حاليا تجرى" in message:
         print(f"🔵 الحساب مشغول: {message}")
+        cleaned_msg = clean_message(message)
         for user_id, data in list(waiting_requests.items()):
-            await bot.send_message(user_id, f"⚠️ {message}")
+            await bot.send_message(user_id, f"⚠️ {cleaned_msg}")
             del waiting_requests[user_id]
         active_request = None
         return
@@ -762,8 +791,9 @@ async def handle_steam_reply(event):
     # ==================== حساب غير موجود ====================
     if "غير موجود" in message or "not found" in message.lower() or "خطأ" in message:
         print(f"🔴 حساب غير موجود: {message}")
+        cleaned_msg = clean_message(message)
         for user_id, data in list(waiting_requests.items()):
-            await bot.send_message(user_id, f"❌ {message}")
+            await bot.send_message(user_id, f"❌ {cleaned_msg}")
             del waiting_requests[user_id]
         active_request = None
         return
@@ -775,7 +805,8 @@ async def handle_steam_reply(event):
     codes = re.findall(r'\b[A-Z0-9]{4,8}\b', message)
     if codes and waiting_requests:
         user_id = list(waiting_requests.keys())[0]
-        await bot.send_message(user_id, f"📩 {message}")
+        cleaned_msg = clean_message(message)
+        await bot.send_message(user_id, f"📩 {cleaned_msg}")
         print(f"📨 أرسلنا رسالة محتملة للمستخدم {user_id}")
         del waiting_requests[user_id]
         active_request = None
