@@ -39,6 +39,9 @@ steam_bot_username = 'hllestore_bot'
 # steam_bot_username = 'PoweredSteamBot'
 bot_username = 'ORDERSIKON_bot'  # يوزرنيم البوت الجديد
 
+# رقم الطلب الثابت للبوت الجديد (7LE STORE)
+FIXED_ORDER_NUMBER = '208718912'
+
 waiting_requests = {}
 active_request = None
 welcomed_users = set()
@@ -47,10 +50,6 @@ auto_replied_users = set()  # لتجنب الرد المتكرر
 # قائمة للاحتفاظ بالطلبات الأخيرة حتى لو انتهى الـ timeout (للتعامل مع الردود المتأخرة)
 # الشكل: {account_name: {'user_id': user_id, 'time': timestamp}}
 recent_requests = {}
-
-# حالة المستخدم مع البوت الجديد (7LE STORE)
-# الشكل: {user_id: {'state': 'waiting_order'/'waiting_account', 'order_number': رقم الطلب, 'time': timestamp}}
-user_states = {}
 
 # وضع الصيانة
 maintenance_mode = False
@@ -584,86 +583,55 @@ async def handle_bot_message(event):
     if " " in message:
         return
     
+    # التحقق من الأحرف العربية (اسم الحساب بالإنجليزي فقط)
+    if any('\u0600' <= char <= '\u06FF' for char in message):
+        await event.reply(messages['invalid_account'])
+        return
+    
     current_time = time.time()
     
     # ==================== آلية البوت الجديد (7LE STORE) ====================
-    # التحقق من حالة المستخدم
+    # المستخدم يرسل اسم الحساب فقط
+    # البوت يطلب رقم الطلب → نرسل الرقم الثابت تلقائياً
+    # البوت يطلب اسم الحساب → نرسل اسم الحساب تلقائياً
     
-    # إذا المستخدم لم يرسل رقم الطلب بعد (أو انتهت المدة)
-    if user_id not in user_states or current_time - user_states[user_id].get('time', 0) > 600:  # 10 دقائق
-        # نعتبر هذه الرسالة هي رقم الطلب
-        # إرسال رقم الطلب للبوت الجديد
-        steam_bot = await userbot.get_entity(steam_bot_username)
-        await userbot.send_message(steam_bot, message)
-        
-        user_states[user_id] = {
-            'state': 'waiting_account',
-            'order_number': message,
-            'time': current_time
-        }
-        
-        print(f"📅 رقم طلب من {user_id}: {message}")
-        await event.reply("⏳ جاري التحقق من رقم الطلب... انتظر رد البوت.")
+    if user_id in waiting_requests:
+        if current_time - waiting_requests[user_id]['time'] < 300:  # 5 دقائق
+            await event.reply(messages['wait_5_minutes'])
+            return
+    
+    if active_request:
+        await event.reply(messages['someone_using'])
         return
     
-    # إذا المستخدم في حالة انتظار إرسال اسم الحساب
-    if user_states[user_id].get('state') == 'waiting_account':
-        # التحقق من الأحرف العربية (اسم الحساب بالإنجليزي فقط)
-        if any('\u0600' <= char <= '\u06FF' for char in message):
-            await event.reply(messages['invalid_account'])
-            return
-        
-        if user_id in waiting_requests:
-            if current_time - waiting_requests[user_id]['time'] < 300:  # 5 دقائق
-                await event.reply(messages['wait_5_minutes'])
-                return
-        
-        if active_request:
-            await event.reply(messages['someone_using'])
-            return
-        
-        print(f"📅 اسم حساب من {user_id}: {message}")
-        
-        # تسجيل الاستخدام
-        display_name = sender.first_name or sender.username or "مستخدم مجهول"
-        log_usage(
-            order_id=user_order_code or "غير معروف",
-            user_id=user_id,
-            username=display_name,
-            account=message
-        )
-        
-        # إرسال اسم الحساب للبوت الجديد
-        steam_bot = await userbot.get_entity(steam_bot_username)
-        await userbot.send_message(steam_bot, message)
-        
-        waiting_requests[user_id] = {
-            'account': message,
-            'order_number': user_states[user_id].get('order_number', ''),
-            'time': current_time
-        }
-        active_request = user_id
-        
-        # حفظ الطلب في recent_requests للتعامل مع الردود المتأخرة (لمدة 10 دقائق)
-        recent_requests[message.lower()] = {
-            'user_id': user_id,
-            'order_number': user_states[user_id].get('order_number', ''),
-            'time': current_time
-        }
-        return
+    print(f"📅 اسم حساب من {user_id}: {message}")
     
-    # في حالة أخرى، نعتبرها رقم طلب جديد
+    # تسجيل الاستخدام
+    display_name = sender.first_name or sender.username or "مستخدم مجهول"
+    log_usage(
+        order_id=user_order_code or "غير معروف",
+        user_id=user_id,
+        username=display_name,
+        account=message
+    )
+    
+    # إرسال اسم الحساب للبوت الجديد
     steam_bot = await userbot.get_entity(steam_bot_username)
     await userbot.send_message(steam_bot, message)
     
-    user_states[user_id] = {
-        'state': 'waiting_account',
-        'order_number': message,
+    waiting_requests[user_id] = {
+        'account': message,
+        'time': current_time
+    }
+    active_request = user_id
+    
+    # حفظ الطلب في recent_requests للتعامل مع الردود المتأخرة (لمدة 10 دقائق)
+    recent_requests[message.lower()] = {
+        'user_id': user_id,
         'time': current_time
     }
     
-    print(f"📅 رقم طلب من {user_id}: {message}")
-    await event.reply("⏳ جاري التحقق من رقم الطلب... انتظر رد البوت.")
+    await event.reply(messages['checking_account'])
     
     async def check_timeout():
         await asyncio.sleep(300)  # 5 دقائق بدلاً من 3
@@ -705,24 +673,24 @@ async def handle_steam_reply(event):
     # ==================== طلب رقم الطلب أولاً ====================
     # "الرجاء كتابة رقم طلبك الموجود في سلة للتحقق"
     if "الرجاء كتابة رقم طلبك" in message or "رقم طلبك الموجود" in message:
-        print(f"📝 طلب رقم الطلب: {message}")
-        # نرسل للمستخدم أنه يجب إرسال رقم الطلب أولاً
-        for user_id, data in list(user_states.items()):
-            if data.get('state') == 'waiting_account':
-                await bot.send_message(user_id, "⚠️ الرجاء إرسال **رقم الطلب** أولاً قبل اسم الحساب.")
-                # نعيد حالة المستخدم لإرسال رقم الطلب
-                user_states[user_id]['state'] = 'waiting_order'
+        print(f"📝 البوت طلب رقم الطلب - نرسل الرقم الثابت تلقائياً: {FIXED_ORDER_NUMBER}")
+        # نرسل رقم الطلب الثابت تلقائياً
+        steam_bot = await userbot.get_entity(steam_bot_username)
+        await userbot.send_message(steam_bot, FIXED_ORDER_NUMBER)
         return
     
     # ==================== رقم الطلب صحيح - طلب اسم الحساب ====================
     # "اختيار موفق عزيزي العميل، الرجاء كتابة اسم حساب ستيم الذي ترغب بالدخول إليه"
     if "اختيار موفق" in message or "الرجاء كتابة اسم حساب ستيم" in message:
-        print(f"✅ رقم الطلب صحيح: {message}")
-        # نرسل للمستخدم أنه يمكنه الآن إرسال اسم الحساب
-        for user_id, data in list(user_states.items()):
-            if data.get('state') == 'waiting_account' or data.get('order_number'):
-                await bot.send_message(user_id, "✅ رقم الطلب صحيح!\n\n📝 الآن أرسل **اسم حساب ستيم** الذي تريد تسجيل الدخول إليه.")
-                user_states[user_id]['state'] = 'waiting_account'
+        print(f"✅ رقم الطلب صحيح - نرسل اسم الحساب تلقائياً")
+        # نرسل اسم الحساب تلقائياً (المحفوظ في waiting_requests)
+        steam_bot = await userbot.get_entity(steam_bot_username)
+        for user_id, data in list(waiting_requests.items()):
+            account_name = data.get('account', '')
+            if account_name:
+                print(f"📤 إرسال اسم الحساب تلقائياً: {account_name}")
+                await userbot.send_message(steam_bot, account_name)
+                break
         return
     
     # ==================== الحساب جاهز ====================
@@ -752,9 +720,6 @@ async def handle_steam_reply(event):
             await bot.send_message(uid, f"✅ {message}")
             print(f"📨 أرسلنا الكود للمستخدم {uid}")
             del waiting_requests[uid]
-            # تنظيف حالة المستخدم
-            if uid in user_states:
-                del user_states[uid]
             account_found = True
         
         active_request = None
@@ -766,8 +731,6 @@ async def handle_steam_reply(event):
                 await bot.send_message(uid, f"✅ {message}")
                 print(f"📨 أرسلنا الكود للمستخدم {uid} من recent_requests")
                 del recent_requests[account]
-                if uid in user_states:
-                    del user_states[uid]
                 account_found = True
                 break
         
