@@ -33,7 +33,10 @@ userbot = TelegramClient(StringSession(session_string), api_id, api_hash)
 from telethon import TelegramClient as BotClient
 bot = TelegramClient('bot', api_id, api_hash)
 
-steam_bot_username = 'PoweredSteamBot'
+# البوت الجديد (7LE STORE)
+steam_bot_username = 'hllestore_bot'
+# البوت القديم (احتياطي)
+# steam_bot_username = 'PoweredSteamBot'
 bot_username = 'ORDERSIKON_bot'  # يوزرنيم البوت الجديد
 
 waiting_requests = {}
@@ -44,6 +47,10 @@ auto_replied_users = set()  # لتجنب الرد المتكرر
 # قائمة للاحتفاظ بالطلبات الأخيرة حتى لو انتهى الـ timeout (للتعامل مع الردود المتأخرة)
 # الشكل: {account_name: {'user_id': user_id, 'time': timestamp}}
 recent_requests = {}
+
+# حالة المستخدم مع البوت الجديد (7LE STORE)
+# الشكل: {user_id: {'state': 'waiting_order'/'waiting_account', 'order_number': رقم الطلب, 'time': timestamp}}
+user_states = {}
 
 # وضع الصيانة
 maintenance_mode = False
@@ -577,47 +584,86 @@ async def handle_bot_message(event):
     if " " in message:
         return
     
-    # التحقق من الأحرف العربية
-    if any('\u0600' <= char <= '\u06FF' for char in message):
-        await event.reply(messages['invalid_account'])
-        return
-    
     current_time = time.time()
-    if user_id in waiting_requests:
-        if current_time - waiting_requests[user_id]['time'] < 300:  # 5 دقائق
-            await event.reply(messages['wait_5_minutes'])
-            return
     
-    if active_request:
-        await event.reply(messages['someone_using'])
+    # ==================== آلية البوت الجديد (7LE STORE) ====================
+    # التحقق من حالة المستخدم
+    
+    # إذا المستخدم لم يرسل رقم الطلب بعد (أو انتهت المدة)
+    if user_id not in user_states or current_time - user_states[user_id].get('time', 0) > 600:  # 10 دقائق
+        # نعتبر هذه الرسالة هي رقم الطلب
+        # إرسال رقم الطلب للبوت الجديد
+        steam_bot = await userbot.get_entity(steam_bot_username)
+        await userbot.send_message(steam_bot, message)
+        
+        user_states[user_id] = {
+            'state': 'waiting_account',
+            'order_number': message,
+            'time': current_time
+        }
+        
+        print(f"📅 رقم طلب من {user_id}: {message}")
+        await event.reply("⏳ جاري التحقق من رقم الطلب... انتظر رد البوت.")
         return
     
-    print(f"📅 رسالة من {user_id}: {message}")
+    # إذا المستخدم في حالة انتظار إرسال اسم الحساب
+    if user_states[user_id].get('state') == 'waiting_account':
+        # التحقق من الأحرف العربية (اسم الحساب بالإنجليزي فقط)
+        if any('\u0600' <= char <= '\u06FF' for char in message):
+            await event.reply(messages['invalid_account'])
+            return
+        
+        if user_id in waiting_requests:
+            if current_time - waiting_requests[user_id]['time'] < 300:  # 5 دقائق
+                await event.reply(messages['wait_5_minutes'])
+                return
+        
+        if active_request:
+            await event.reply(messages['someone_using'])
+            return
+        
+        print(f"📅 اسم حساب من {user_id}: {message}")
+        
+        # تسجيل الاستخدام
+        display_name = sender.first_name or sender.username or "مستخدم مجهول"
+        log_usage(
+            order_id=user_order_code or "غير معروف",
+            user_id=user_id,
+            username=display_name,
+            account=message
+        )
+        
+        # إرسال اسم الحساب للبوت الجديد
+        steam_bot = await userbot.get_entity(steam_bot_username)
+        await userbot.send_message(steam_bot, message)
+        
+        waiting_requests[user_id] = {
+            'account': message,
+            'order_number': user_states[user_id].get('order_number', ''),
+            'time': current_time
+        }
+        active_request = user_id
+        
+        # حفظ الطلب في recent_requests للتعامل مع الردود المتأخرة (لمدة 10 دقائق)
+        recent_requests[message.lower()] = {
+            'user_id': user_id,
+            'order_number': user_states[user_id].get('order_number', ''),
+            'time': current_time
+        }
+        return
     
-    # تسجيل الاستخدام
-    display_name = sender.first_name or sender.username or "مستخدم مجهول"
-    log_usage(
-        order_id=user_order_code or "غير معروف",
-        user_id=user_id,
-        username=display_name,
-        account=message
-    )
-    
-    # إرسال للـ Steam Bot عبر Userbot
+    # في حالة أخرى، نعتبرها رقم طلب جديد
     steam_bot = await userbot.get_entity(steam_bot_username)
     await userbot.send_message(steam_bot, message)
     
-    waiting_requests[user_id] = {
-        'account': message,
+    user_states[user_id] = {
+        'state': 'waiting_account',
+        'order_number': message,
         'time': current_time
     }
-    active_request = user_id
     
-    # حفظ الطلب في recent_requests للتعامل مع الردود المتأخرة (لمدة 10 دقائق)
-    recent_requests[message.lower()] = {
-        'user_id': user_id,
-        'time': current_time
-    }
+    print(f"📅 رقم طلب من {user_id}: {message}")
+    await event.reply("⏳ جاري التحقق من رقم الطلب... انتظر رد البوت.")
     
     async def check_timeout():
         await asyncio.sleep(300)  # 5 دقائق بدلاً من 3
@@ -648,18 +694,91 @@ async def ignore_blocked_users(event):
         return
     # باقي الرسائل تُعالج بواسطة handlers أخرى
 
-# ==================== معالجة ردود Steam Bot ====================
+# ==================== معالجة ردود Steam Bot (7LE STORE) ====================
 @userbot.on(events.NewMessage(from_users=steam_bot_username))
 async def handle_steam_reply(event):
     global active_request
     message = event.raw_text.strip()
     
-    print(f"📨 رسالة من Steam Bot: {message}")
+    print(f"📨 رسالة من 7LE Bot: {message}")
+    
+    # ==================== طلب رقم الطلب أولاً ====================
+    # "الرجاء كتابة رقم طلبك الموجود في سلة للتحقق"
+    if "الرجاء كتابة رقم طلبك" in message or "رقم طلبك الموجود" in message:
+        print(f"📝 طلب رقم الطلب: {message}")
+        # نرسل للمستخدم أنه يجب إرسال رقم الطلب أولاً
+        for user_id, data in list(user_states.items()):
+            if data.get('state') == 'waiting_account':
+                await bot.send_message(user_id, "⚠️ الرجاء إرسال **رقم الطلب** أولاً قبل اسم الحساب.")
+                # نعيد حالة المستخدم لإرسال رقم الطلب
+                user_states[user_id]['state'] = 'waiting_order'
+        return
+    
+    # ==================== رقم الطلب صحيح - طلب اسم الحساب ====================
+    # "اختيار موفق عزيزي العميل، الرجاء كتابة اسم حساب ستيم الذي ترغب بالدخول إليه"
+    if "اختيار موفق" in message or "الرجاء كتابة اسم حساب ستيم" in message:
+        print(f"✅ رقم الطلب صحيح: {message}")
+        # نرسل للمستخدم أنه يمكنه الآن إرسال اسم الحساب
+        for user_id, data in list(user_states.items()):
+            if data.get('state') == 'waiting_account' or data.get('order_number'):
+                await bot.send_message(user_id, "✅ رقم الطلب صحيح!\n\n📝 الآن أرسل **اسم حساب ستيم** الذي تريد تسجيل الدخول إليه.")
+                user_states[user_id]['state'] = 'waiting_account'
+        return
+    
+    # ==================== الحساب جاهز ====================
+    # "الحساب جاهز عزيزي العميل، الآن قم بتسجيل الدخول على الحساب ⁨xxx⁩ عبر منصة ستيم"
+    if "الحساب جاهز" in message or "قم بتسجيل الدخول" in message:
+        print(f"✅ الحساب جاهز: {message}")
+        for user_id, data in list(waiting_requests.items()):
+            await bot.send_message(user_id, f"✅ {message}")
+        return
+    
+    # ==================== رقم الطلب موجود (قبل الكود) ====================
+    # "رقم الطلب: ⁨208718912⁩ موجود هنا"
+    if "رقم الطلب:" in message and "موجود هنا" in message:
+        print(f"📋 رقم الطلب موجود: {message}")
+        # لا نرسل هذه الرسالة للمستخدم، الكود سيأتي بعدها
+        return
+    
+    # ==================== رمز التحقق (الكود) ====================
+    # "⁨||```CDQWW```||⁩ رمز تحقق ستيم"
+    if "رمز تحقق" in message or "رمز التحقق" in message:
+        print(f"📩 رمز تحقق: {message}")
+        
+        account_found = False
+        
+        # إرسال الكود لجميع من ينتظرون
+        for uid, data in list(waiting_requests.items()):
+            await bot.send_message(uid, f"✅ {message}")
+            print(f"📨 أرسلنا الكود للمستخدم {uid}")
+            del waiting_requests[uid]
+            # تنظيف حالة المستخدم
+            if uid in user_states:
+                del user_states[uid]
+            account_found = True
+        
+        active_request = None
+        
+        # أيضاً نبحث في recent_requests
+        if not account_found and recent_requests:
+            for account, data in list(recent_requests.items()):
+                uid = data['user_id']
+                await bot.send_message(uid, f"✅ {message}")
+                print(f"📨 أرسلنا الكود للمستخدم {uid} من recent_requests")
+                del recent_requests[account]
+                if uid in user_states:
+                    del user_states[uid]
+                account_found = True
+                break
+        
+        if not account_found:
+            print("⚠️ لا يوجد أحد ينتظر رمز")
+        
+        return
     
     # ==================== حساب معلق ====================
     if "معلق" in message:
         print(f"🔴 رد معلق: {message}")
-        # استبدال جميع الأشكال المحتملة
         fixed_message = message.replace("@ skytvx", "@ikon.storee")
         fixed_message = fixed_message.replace("@skytvx", "@ikon.storee")
         for user_id, data in list(waiting_requests.items()):
@@ -669,88 +788,16 @@ async def handle_steam_reply(event):
         return
     
     # ==================== تجري عملية دخول (الحساب مشغول) ====================
-    elif "تجرى عملية الدخول" in message or "حاليا تجرى" in message:
+    if "تجرى عملية الدخول" in message or "حاليا تجرى" in message:
         print(f"🔵 الحساب مشغول: {message}")
         for user_id, data in list(waiting_requests.items()):
             await bot.send_message(user_id, f"⚠️ {message}")
             del waiting_requests[user_id]
         active_request = None
-        # نغلق الطلب لأن الحساب مشغول
-        return
-    
-    # ==================== رمز التحقق ====================
-    elif "رمز تحقق" in message or "رمز التحقق" in message:
-        print(f"📩 رمز تحقق: {message}")
-        
-        # محاولة استخراج اسم الحساب
-        account_name = None
-        account_found = False
-        
-        try:
-            # طريقة 1: "رمز تحقق لحساب X, هو Y"
-            if "رمز تحقق لحساب" in message:
-                account_part = message.split("رمز تحقق لحساب")[1]
-                if "," in account_part:
-                    account_name = account_part.split(",")[0].strip().lower()
-                elif "هو" in account_part:
-                    account_name = account_part.split("هو")[0].strip().lower()
-                else:
-                    account_name = account_part.split()[0].strip().lower()
-                
-                print(f"🔍 اسم الحساب المستخرج: {account_name}")
-                
-                # طريقة 1: البحث في waiting_requests (الطلبات النشطة)
-                for uid, data in list(waiting_requests.items()):
-                    if data['account'].lower().strip() == account_name:
-                        await bot.send_message(uid, f"✅ {message}")
-                        print(f"📨 أرسلنا الكود للمستخدم {uid} من waiting_requests")
-                        del waiting_requests[uid]
-                        active_request = None
-                        account_found = True
-                        # حذف من recent_requests أيضاً
-                        if account_name in recent_requests:
-                            del recent_requests[account_name]
-                        break
-                
-                # طريقة 2: البحث في recent_requests (الطلبات المتأخرة)
-                if not account_found and account_name in recent_requests:
-                    uid = recent_requests[account_name]['user_id']
-                    await bot.send_message(uid, f"✅ {message}")
-                    print(f"📨 أرسلنا الكود للمستخدم {uid} من recent_requests (رد متأخر)")
-                    del recent_requests[account_name]
-                    account_found = True
-                    # تنظيف waiting_requests إذا كان موجوداً
-                    if uid in waiting_requests:
-                        del waiting_requests[uid]
-                        active_request = None
-        except Exception as e:
-            print(f"❌ خطأ في تحليل اسم الحساب: {e}")
-        
-        # طريقة 3: إذا لم نجد الحساب بالاسم، نرسل لأول شخص ينتظر
-        if not account_found:
-            if waiting_requests:
-                uid = list(waiting_requests.keys())[0]
-                await bot.send_message(uid, f"✅ {message}")
-                print(f"📨 أرسلنا الكود للمستخدم الأول {uid}")
-                del waiting_requests[uid]
-                active_request = None
-                account_found = True
-            elif recent_requests:
-                # إرسال لآخر طلب في recent_requests
-                last_account = list(recent_requests.keys())[-1]
-                uid = recent_requests[last_account]['user_id']
-                await bot.send_message(uid, f"✅ {message}")
-                print(f"📨 أرسلنا الكود للمستخدم {uid} من آخر طلب recent")
-                del recent_requests[last_account]
-                account_found = True
-        
-        if not account_found:
-            print("⚠️ لا يوجد أحد ينتظر رمز - لم نتمكن من إرسال الكود")
-        
         return
     
     # ==================== حساب غير موجود ====================
-    elif "غير موجود" in message or "not found" in message.lower() or "خطأ" in message:
+    if "غير موجود" in message or "not found" in message.lower() or "خطأ" in message:
         print(f"🔴 حساب غير موجود: {message}")
         for user_id, data in list(waiting_requests.items()):
             await bot.send_message(user_id, f"❌ {message}")
@@ -759,18 +806,16 @@ async def handle_steam_reply(event):
         return
     
     # ==================== رسالة أخرى غير معروفة ====================
-    else:
-        print(f"📄 رسالة أخرى: {message}")
-        # إذا الرسالة تحتوي على أرقام (ربما رمز تحقق بصيغة مختلفة)
-        import re
-        codes = re.findall(r'\b[A-Z0-9]{4,8}\b', message)
-        if codes and waiting_requests:
-            # ربما هذا رمز تحقق
-            user_id = list(waiting_requests.keys())[0]
-            await bot.send_message(user_id, f"📩 {message}")
-            print(f"📨 أرسلنا رسالة محتملة للمستخدم {user_id}")
-            del waiting_requests[user_id]
-            active_request = None
+    print(f"📄 رسالة أخرى: {message}")
+    # إذا الرسالة تحتوي على أرقام/أحرف (ربما رمز تحقق بصيغة مختلفة)
+    import re
+    codes = re.findall(r'\b[A-Z0-9]{4,8}\b', message)
+    if codes and waiting_requests:
+        user_id = list(waiting_requests.keys())[0]
+        await bot.send_message(user_id, f"📩 {message}")
+        print(f"📨 أرسلنا رسالة محتملة للمستخدم {user_id}")
+        del waiting_requests[user_id]
+        active_request = None
 
 # ==================== التشغيل ====================
 async def main():
