@@ -840,6 +840,18 @@ async def handle_steam_reply(event):
         active_request = None
         return
     
+    # ==================== اسم المستخدم غير صحيح ====================
+    if "اسم المستخدم غير صحيح" in message or "غير صحيح" in message:
+        print(f"🔴 اسم المستخدم غير صحيح: {message}")
+        for user_id, data in list(waiting_requests.items()):
+            if request_bot_type.get(user_id) == 'hlle':
+                await bot.send_message(user_id, "❌ الحساب غير موجود. تأكد من إدخال اسم الحساب بشكل صحيح.")
+                del waiting_requests[user_id]
+                if user_id in request_bot_type:
+                    del request_bot_type[user_id]
+        active_request = None
+        return
+    
     # ==================== حساب غير موجود ====================
     if "غير موجود" in message or "not found" in message.lower() or "خطأ" in message:
         print(f"🔴 حساب غير موجود: {message}")
