@@ -535,7 +535,6 @@ async def handle_bot_message(event):
             
             # إعادة تعيين البوت (إذا علق)
             if message == '/reset':
-                global active_request
                 old_active = active_request
                 old_waiting = len(waiting_requests)
                 old_recent = len(recent_requests)
@@ -705,7 +704,8 @@ async def handle_bot_message(event):
             await event.reply(messages['wait_5_minutes'])
             return
     
-    if active_request:
+    # الأدمن لا يخضع لقيد "شخص آخر يستخدم البوت"
+    if active_request and not is_admin(user_id, username):
         await event.reply(messages['someone_using'])
         return
     
@@ -861,6 +861,19 @@ async def handle_steam_reply(event):
         if not account_found:
             print("⚠️ لا يوجد أحد ينتظر رمز")
         
+        return
+    
+    # ==================== انتظر للحصول على كود جديد (cooldown) ====================
+    if "إنتظر" in message and ("دقائق" in message or "دقيقة" in message):
+        print(f"⏳ طلب انتظار: {message}")
+        cleaned_msg = clean_message(message)
+        for user_id, data in list(waiting_requests.items()):
+            if request_bot_type.get(user_id) == 'hlle':
+                await bot.send_message(user_id, f"⏳ {cleaned_msg}")
+                del waiting_requests[user_id]
+                if user_id in request_bot_type:
+                    del request_bot_type[user_id]
+        active_request = None
         return
     
     # ==================== حساب معلق ====================
