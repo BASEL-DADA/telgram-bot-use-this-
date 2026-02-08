@@ -3,6 +3,7 @@ from telethon.sessions import StringSession
 import time
 import asyncio
 import os
+import re
 from datetime import datetime
 from db import (
     is_user_verified, add_verified_user, is_allowed_order, is_banned_order, 
@@ -185,7 +186,7 @@ admin_help = """
 /kick user_id - طرد مستخدم
 
 � **الرسائل:**
-/msg all الرسالة - إرسال للجميع
+/broadcast الرسالة - إرسال للجميع
 /msg رقم_الطلب الرسالة - إرسال لرقم طلب
 
 📊 **الإحصائيات:**
@@ -193,6 +194,9 @@ admin_help = """
 /logs - آخر 10 عمليات
 /logs رقم_الطلب - آخر 20 عملية لرقم طلب
 /userlogs اسم_المستخدم - آخر 30 عملية لمستخدم
+
+🔧 **أدوات:**
+/reset - إعادة تعيين البوت (إذا علق)
 
 ━━━━━━━━━━━━━━━━━━━━━━
 👤 **أوامر المستخدمين:**
@@ -206,7 +210,7 @@ exit - تسجيل خروج وإدخال رقم طلب جديد
 `/ban 12345`
 `/logs 12345`
 `/userlogs basel_iii`
-`/msg all مرحبا بالجميع`
+`/broadcast مرحبا بالجميع`
 `/msg 12345 رسالة خاصة`
 """
 
@@ -529,6 +533,51 @@ async def handle_bot_message(event):
                 await event.reply(text)
                 return
             
+            # إعادة تعيين البوت (إذا علق)
+            if message == '/reset':
+                global active_request
+                old_active = active_request
+                old_waiting = len(waiting_requests)
+                old_recent = len(recent_requests)
+                
+                active_request = None
+                waiting_requests.clear()
+                recent_requests.clear()
+                request_bot_type.clear()
+                
+                await event.reply(f"🔄 **تم إعادة تعيين البوت:**\n\n• طلب نشط سابق: `{old_active}`\n• طلبات منتظرة محذوفة: {old_waiting}\n• طلبات أخيرة محذوفة: {old_recent}\n\n✅ البوت جاهز الآن")
+                return
+            
+            # إرسال رسالة للجميع (broadcast)
+            if message.startswith('/broadcast '):
+                parts = message.split(' ', 1)
+                if len(parts) < 2 or not parts[1].strip():
+                    await event.reply("❌ **الاستخدام:**\n`/broadcast الرسالة`\n\nمثال:\n`/broadcast مرحباً بالجميع!`")
+                    return
+                
+                msg_text = parts[1].strip()
+                connection = get_connection()
+                sent_count = 0
+                failed_count = 0
+                
+                with connection.cursor() as cursor:
+                    cursor.execute("SELECT user_id FROM users;")
+                    all_users = cursor.fetchall()
+                
+                await event.reply(f"📤 جاري الإرسال لـ {len(all_users)} مستخدم...")
+                
+                for (uid,) in all_users:
+                    try:
+                        await bot.send_message(uid, f"📢 **رسالة من الإدارة:**\n\n{msg_text}")
+                        sent_count += 1
+                        await asyncio.sleep(0.1)  # تجنب الحظر من تيليجرام
+                    except Exception as e:
+                        print(f"❌ فشل إرسال لـ {uid}: {e}")
+                        failed_count += 1
+                
+                await event.reply(f"✅ **تم الإرسال!**\n\n📤 نجح: {sent_count}\n❌ فشل: {failed_count}")
+                return
+            
             # إرسال رسالة للمستخدمين
             if message.startswith('/msg '):
                 parts = message.split(' ', 2)
@@ -650,7 +699,8 @@ async def handle_bot_message(event):
     # البوت يطلب رقم الطلب → نرسل الرقم الثابت تلقائياً
     # البوت يطلب اسم الحساب → نرسل اسم الحساب تلقائياً
     
-    if user_id in waiting_requests:
+    # الأدمن لا يخضع لقيد الانتظار 5 دقائق
+    if user_id in waiting_requests and not is_admin(user_id, username):
         if current_time - waiting_requests[user_id]['time'] < 300:  # 5 دقائق
             await event.reply(messages['wait_5_minutes'])
             return
@@ -869,7 +919,6 @@ async def handle_steam_reply(event):
     # ==================== رسالة أخرى غير معروفة ====================
     print(f"📄 رسالة أخرى: {message}")
     # إذا الرسالة تحتوي على أرقام/أحرف (ربما رمز تحقق بصيغة مختلفة)
-    import re
     codes = re.findall(r'\b[A-Z0-9]{4,8}\b', message)
     if codes and waiting_requests:
         for uid, data in list(waiting_requests.items()):
@@ -983,7 +1032,6 @@ async def handle_powered_steam_reply(event):
     # ==================== رسالة أخرى ====================
     print(f"📄 PoweredSteamBot: رسالة أخرى: {message}")
     # إذا الرسالة تحتوي على كود (5 أحرف/أرقام)
-    import re
     codes = re.findall(r'\b[A-Z0-9]{5}\b', message)
     if codes and waiting_requests:
         for uid, data in list(waiting_requests.items()):
