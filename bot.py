@@ -698,14 +698,13 @@ async def handle_bot_message(event):
     # البوت يطلب رقم الطلب → نرسل الرقم الثابت تلقائياً
     # البوت يطلب اسم الحساب → نرسل اسم الحساب تلقائياً
     
-    # الأدمن لا يخضع لقيد الانتظار 5 دقائق
-    if user_id in waiting_requests and not is_admin(user_id, username):
+    # فحص قيد الانتظار 5 دقائق (للجميع بما فيهم الأدمن)
+    if user_id in waiting_requests:
         if current_time - waiting_requests[user_id]['time'] < 300:  # 5 دقائق
             await event.reply(messages['wait_5_minutes'])
             return
     
-    # الأدمن لا يخضع لقيد "شخص آخر يستخدم البوت"
-    if active_request and not is_admin(user_id, username):
+    if active_request:
         await event.reply(messages['someone_using'])
         return
     
