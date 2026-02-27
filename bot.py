@@ -1036,6 +1036,18 @@ async def handle_powered_steam_reply(event):
         active_request = None
         return
     
+    # ==================== تجري عملية دخول (الحساب مشغول) ====================
+    if "تجرى عملية الدخول" in message or "حاليا تجرى" in message:
+        print(f"🔵 PoweredSteamBot: الحساب مشغول: {message}")
+        for uid, data in list(waiting_requests.items()):
+            if request_bot_type.get(uid) == 'powered':
+                await bot.send_message(uid, f"⚠️ حالياً تجري عملية دخول على هذا الحساب.\nالرجاء الانتظار 5 دقائق ثم المحاولة مجدداً.")
+                del waiting_requests[uid]
+                if uid in request_bot_type:
+                    del request_bot_type[uid]
+        active_request = None
+        return
+    
     # ==================== حساب غير موجود ====================
     if "غير موجود" in message or "not found" in message.lower():
         print(f"🔴 PoweredSteamBot: حساب غير موجود: {message}")
