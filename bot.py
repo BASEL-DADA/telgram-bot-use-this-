@@ -87,8 +87,12 @@ welcomed_users = set()
 auto_replied_users = set()  # لتجنب الرد المتكرر
 
 # لتتبع أي بوت يستخدم لكل طلب
-# الشكل: {user_id: 'powered' أو 'hlle'}
+# الشكل: {user_id: 'powered' أو 'powered_re9' أو 'hlle'}
 request_bot_type = {}
+
+# لتتبع آخر قائمة استُخدمت مع PoweredSteamBot (لتجنب إرسال رقم الطلب مرة ثانية)
+# القيم: 'powered' أو 'powered_re9' أو None
+last_powered_list_type = None
 
 # قائمة للاحتفاظ بالطلبات الأخيرة حتى لو انتهى الـ timeout (للتعامل مع الردود المتأخرة)
 # الشكل: {account_name: {'user_id': user_id, 'time': timestamp}}
@@ -734,22 +738,39 @@ async def handle_bot_message(event):
     # تحديد أي بوت نستخدم بناءً على اسم الحساب
     account_lower = message.lower()
     
+    global last_powered_list_type
+    
     if account_lower in RE9_ACCOUNTS:
-        # الحساب من قائمة RE9 - يذهب لـ PoweredSteamBot مع رقم طلب RE9
-        print(f"📤 إرسال إلى PoweredSteamBot (RE9): رقم الطلب {RE9_ORDER_NUMBER} ثم {message}")
+        # الحساب من قائمة RE9 - يذهب لـ PoweredSteamBot
         target_bot = await userbot.get_entity(powered_steam_bot_username)
         request_bot_type[user_id] = 'powered_re9'
-        # إرسال رقم الطلب أولاً
-        await userbot.send_message(target_bot, RE9_ORDER_NUMBER)
-        # حفظ اسم الحساب لإرساله لاحقاً عندما يرد البوت
+        
+        if last_powered_list_type == 'powered_re9':
+            # نفس القائمة - نرسل اسم الحساب مباشرة
+            print(f"📤 إرسال إلى PoweredSteamBot (RE9): {message} (بدون رقم طلب - نفس القائمة)")
+            await userbot.send_message(target_bot, message)
+        else:
+            # قائمة مختلفة - نرسل رقم الطلب أولاً
+            print(f"📤 إرسال إلى PoweredSteamBot (RE9): رقم الطلب {RE9_ORDER_NUMBER} ثم {message}")
+            await userbot.send_message(target_bot, RE9_ORDER_NUMBER)
+            last_powered_list_type = 'powered_re9'
+            # اسم الحساب سيُرسل لاحقاً عندما يرد البوت
+            
     elif account_lower in POWERED_STEAM_ACCOUNTS:
         # الحساب من قائمة PoweredSteamBot الأصلية
-        print(f"📤 إرسال إلى PoweredSteamBot: رقم الطلب {POWERED_STEAM_ORDER_NUMBER} ثم {message}")
         target_bot = await userbot.get_entity(powered_steam_bot_username)
         request_bot_type[user_id] = 'powered'
-        # إرسال رقم الطلب أولاً
-        await userbot.send_message(target_bot, POWERED_STEAM_ORDER_NUMBER)
-        # حفظ اسم الحساب لإرساله لاحقاً عندما يرد البوت
+        
+        if last_powered_list_type == 'powered':
+            # نفس القائمة - نرسل اسم الحساب مباشرة
+            print(f"📤 إرسال إلى PoweredSteamBot: {message} (بدون رقم طلب - نفس القائمة)")
+            await userbot.send_message(target_bot, message)
+        else:
+            # قائمة مختلفة - نرسل رقم الطلب أولاً
+            print(f"📤 إرسال إلى PoweredSteamBot: رقم الطلب {POWERED_STEAM_ORDER_NUMBER} ثم {message}")
+            await userbot.send_message(target_bot, POWERED_STEAM_ORDER_NUMBER)
+            last_powered_list_type = 'powered'
+            # اسم الحساب سيُرسل لاحقاً عندما يرد البوت
     else:
         # الحساب عادي - يذهب لـ hllestore_bot
         print(f"📤 إرسال إلى hllestore_bot: {message}")
