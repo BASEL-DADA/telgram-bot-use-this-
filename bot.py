@@ -78,7 +78,10 @@ POWERED_STEAM_ACCOUNTS = {
     'qrmdxtob6843', 'p7ao0hxls4', 'mattia3431', 'sundimemoli7g', 'lxakeisl',
     'alarmingbystand2', 'danwangbule', 'godofredo57', 'detroit_st',
     'amanda_reflect738086', 'vmjix46135', 'srwbi52693', 'pd67gxtl', 'witcher3_st',
-    'xoool51874', 'xl2eb1bm1ks4'
+    'xoool51874', 'xl2eb1bm1ks4',
+    # حسابات جديدة مضافة
+    'iejb44869', '6772882931', 'rfkeh55179', '70187659', 'er1260197',
+    'naubm12923', 'nightmares_st', 'cycacai46'
 }
 
 waiting_requests = {}
