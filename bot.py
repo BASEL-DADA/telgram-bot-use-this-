@@ -43,7 +43,19 @@ bot_username = 'ORDERSIKON_bot'  # يوزرنيم البوت الجديد
 # رقم الطلب الثابت للبوت الجديد (7LE STORE)
 FIXED_ORDER_NUMBER = '208718912'
 
-# قائمة الحسابات التي تذهب إلى PoweredSteamBot
+# أرقام طلبات PoweredSteamBot
+POWERED_STEAM_ORDER_NUMBER = '242549795'  # للقائمة الأصلية
+RE9_ORDER_NUMBER = '242875026'  # لقائمة RE9
+
+# قائمة حسابات RE9 (تذهب إلى PoweredSteamBot مع رقم طلب RE9)
+RE9_ACCOUNTS = {
+    'cpcnc993712', 'yf1qf5oh4xp0', 'qp6ef1dc6av3', 'ur8ts3zk4kf0', 'sf6mv9vq9gv8',
+    'gc9um3qb1sh6', 'bb1hr4yz8gs8', 'vt1ot6nt3ro2', 'de8mg8qz0yo8', 'ax8az1rv1ga7',
+    'tw5rm2tz3am3', 'ke6gc9yu6ij5', 'prmst44110', 'prtzt73337', 'prvnd57593',
+    'qm5vq5yj2zc4', 'gk0lm5xr0nf1', 'mv8ue9ak9un4', 'lb2ef6wz4ml8'
+}
+
+# قائمة الحسابات التي تذهب إلى PoweredSteamBot (مع رقم الطلب الأصلي)
 POWERED_STEAM_ACCOUNTS = {
     'qapo2d', 'diteks', 'retlau', 'mrdarkness26', 'skytvstore0', 'skytvgames0',
     'chrismendoza', 'uzab54709', 'kcqum63847', 'ywfkn71206', 'rapcs71404',
@@ -66,12 +78,7 @@ POWERED_STEAM_ACCOUNTS = {
     'qrmdxtob6843', 'p7ao0hxls4', 'mattia3431', 'sundimemoli7g', 'lxakeisl',
     'alarmingbystand2', 'danwangbule', 'godofredo57', 'detroit_st',
     'amanda_reflect738086', 'vmjix46135', 'srwbi52693', 'pd67gxtl', 'witcher3_st',
-    'xoool51874', 'xl2eb1bm1ks4',
-    # حسابات جديدة
-    'yf1qf5oh4xp0', 'cpcnc993712', 'qp6ef1dc6av3', 'ur8ts3zk4kf0', 'sf6mv9vq9gv8',
-    'gc9um3qb1sh6', 'bb1hr4yz8gs8', 'vt1ot6nt3ro2', 'de8mg8qz0yo8', 'ax8az1rv1ga7',
-    'tw5rm2tz3am3', 'ke6gc9yu6ij5', 'prmst44110', 'prtzt73337', 'prvnd57593',
-    'qm5vq5yj2zc4', 'gk0lm5xr0nf1', 'mv8ue9ak9un4', 'lb2ef6wz4ml8'
+    'xoool51874', 'xl2eb1bm1ks4'
 }
 
 waiting_requests = {}
@@ -725,18 +732,30 @@ async def handle_bot_message(event):
     )
     
     # تحديد أي بوت نستخدم بناءً على اسم الحساب
-    if message.lower() in POWERED_STEAM_ACCOUNTS:
-        # الحساب من قائمة PoweredSteamBot
-        print(f"📤 إرسال إلى PoweredSteamBot: {message}")
+    account_lower = message.lower()
+    
+    if account_lower in RE9_ACCOUNTS:
+        # الحساب من قائمة RE9 - يذهب لـ PoweredSteamBot مع رقم طلب RE9
+        print(f"📤 إرسال إلى PoweredSteamBot (RE9): رقم الطلب {RE9_ORDER_NUMBER} ثم {message}")
+        target_bot = await userbot.get_entity(powered_steam_bot_username)
+        request_bot_type[user_id] = 'powered_re9'
+        # إرسال رقم الطلب أولاً
+        await userbot.send_message(target_bot, RE9_ORDER_NUMBER)
+        # حفظ اسم الحساب لإرساله لاحقاً عندما يرد البوت
+    elif account_lower in POWERED_STEAM_ACCOUNTS:
+        # الحساب من قائمة PoweredSteamBot الأصلية
+        print(f"📤 إرسال إلى PoweredSteamBot: رقم الطلب {POWERED_STEAM_ORDER_NUMBER} ثم {message}")
         target_bot = await userbot.get_entity(powered_steam_bot_username)
         request_bot_type[user_id] = 'powered'
+        # إرسال رقم الطلب أولاً
+        await userbot.send_message(target_bot, POWERED_STEAM_ORDER_NUMBER)
+        # حفظ اسم الحساب لإرساله لاحقاً عندما يرد البوت
     else:
         # الحساب عادي - يذهب لـ hllestore_bot
         print(f"📤 إرسال إلى hllestore_bot: {message}")
         target_bot = await userbot.get_entity(steam_bot_username)
         request_bot_type[user_id] = 'hlle'
-    
-    await userbot.send_message(target_bot, message)
+        await userbot.send_message(target_bot, message)
     
     waiting_requests[user_id] = {
         'account': message,
@@ -964,13 +983,29 @@ async def handle_powered_steam_reply(event):
     
     print(f"📨 رسالة من PoweredSteamBot: {message}")
     
+    # ==================== رد بعد إرسال رقم الطلب - طلب اسم الحساب ====================
+    # "ممتاز. الرجاء كتابة اسم حساب ستيم المراد الدخول اليه"
+    # أو أي رد آخر بعد رقم الطلب يطلب اسم الحساب
+    if "ممتاز" in message or "الرجاء كتابة اسم حساب" in message or "اسم حساب ستيم" in message:
+        print(f"✅ PoweredSteamBot: طلب اسم الحساب - نرسله تلقائياً")
+        # نرسل اسم الحساب تلقائياً
+        powered_bot = await userbot.get_entity(powered_steam_bot_username)
+        for user_id, data in list(waiting_requests.items()):
+            if request_bot_type.get(user_id) in ['powered', 'powered_re9']:
+                account_name = data.get('account', '')
+                if account_name:
+                    print(f"📤 إرسال اسم الحساب تلقائياً: {account_name}")
+                    await userbot.send_message(powered_bot, account_name)
+                    break
+        return
+    
     # ==================== تأكيد تسجيل الدخول ====================
     # "الرجاء تسجيل دخول على حساب xxx عبر منصة ستيم"
     if "الرجاء تسجيل دخول على حساب" in message or "تسجيل الدخول على حساب" in message:
         print(f"✅ PoweredSteamBot: تأكيد تسجيل الدخول")
         # نرسل رسالة للمستخدم أن عليه تسجيل الدخول
         for user_id, data in list(waiting_requests.items()):
-            if request_bot_type.get(user_id) == 'powered':
+            if request_bot_type.get(user_id) in ['powered', 'powered_re9']:
                 await bot.send_message(user_id, messages['login_message'])
                 print(f"📨 أرسلنا رسالة تسجيل الدخول للمستخدم {user_id}")
         return
@@ -984,7 +1019,7 @@ async def handle_powered_steam_reply(event):
         
         # إرسال الكود لجميع من ينتظرون من PoweredSteamBot
         for uid, data in list(waiting_requests.items()):
-            if request_bot_type.get(uid) == 'powered':
+            if request_bot_type.get(uid) in ['powered', 'powered_re9']:
                 await bot.send_message(uid, f"✅ {message}\n\nيوم سعيد 🫶")
                 print(f"📨 أرسلنا الكود للمستخدم {uid}")
                 del waiting_requests[uid]
@@ -998,7 +1033,7 @@ async def handle_powered_steam_reply(event):
         if not account_found and recent_requests:
             for account, data in list(recent_requests.items()):
                 uid = data['user_id']
-                if request_bot_type.get(uid) == 'powered':
+                if request_bot_type.get(uid) in ['powered', 'powered_re9']:
                     await bot.send_message(uid, f"✅ {message}\n\nيوم سعيد 🫶")
                     print(f"📨 أرسلنا الكود للمستخدم {uid} من recent_requests")
                     del recent_requests[account]
@@ -1032,7 +1067,7 @@ async def handle_powered_steam_reply(event):
         fixed_message = '\n'.join(cleaned_lines)
         
         for uid, data in list(waiting_requests.items()):
-            if request_bot_type.get(uid) == 'powered':
+            if request_bot_type.get(uid) in ['powered', 'powered_re9']:
                 await bot.send_message(uid, f"🚫 {fixed_message.strip()}\n\nللتواصل: @ikon.storee (انستغرام)")
                 del waiting_requests[uid]
                 if uid in request_bot_type:
@@ -1045,7 +1080,7 @@ async def handle_powered_steam_reply(event):
     if "تجرى عملية الدخول" in message or "حاليا تجرى" in message:
         print(f"🔵 PoweredSteamBot: الحساب مشغول: {message}")
         for uid, data in list(waiting_requests.items()):
-            if request_bot_type.get(uid) == 'powered':
+            if request_bot_type.get(uid) in ['powered', 'powered_re9']:
                 await bot.send_message(uid, f"⚠️ حالياً تجري عملية دخول على هذا الحساب.\nالرجاء الانتظار 5 دقائق ثم المحاولة مجدداً.")
                 del waiting_requests[uid]
                 if uid in request_bot_type:
@@ -1057,7 +1092,7 @@ async def handle_powered_steam_reply(event):
     if "غير موجود" in message or "not found" in message.lower():
         print(f"🔴 PoweredSteamBot: حساب غير موجود: {message}")
         for uid, data in list(waiting_requests.items()):
-            if request_bot_type.get(uid) == 'powered':
+            if request_bot_type.get(uid) in ['powered', 'powered_re9']:
                 await bot.send_message(uid, f"❌ {message}")
                 del waiting_requests[uid]
                 if uid in request_bot_type:
@@ -1071,7 +1106,7 @@ async def handle_powered_steam_reply(event):
     codes = re.findall(r'\b[A-Z0-9]{5}\b', message)
     if codes and waiting_requests:
         for uid, data in list(waiting_requests.items()):
-            if request_bot_type.get(uid) == 'powered':
+            if request_bot_type.get(uid) in ['powered', 'powered_re9']:
                 await bot.send_message(uid, f"✅ رمز التحقق: {codes[0]}\n\nيوم سعيد 🫶")
                 print(f"📨 أرسلنا الكود للمستخدم {uid}")
                 del waiting_requests[uid]
