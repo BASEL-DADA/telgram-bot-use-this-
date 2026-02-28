@@ -70,7 +70,8 @@ POWERED_STEAM_ACCOUNTS = {
     # حسابات جديدة
     'yf1qf5oh4xp0', 'cpcnc993712', 'qp6ef1dc6av3', 'ur8ts3zk4kf0', 'sf6mv9vq9gv8',
     'gc9um3qb1sh6', 'bb1hr4yz8gs8', 'vt1ot6nt3ro2', 'de8mg8qz0yo8', 'ax8az1rv1ga7',
-    'tw5rm2tz3am3', 'ke6gc9yu6ij5'
+    'tw5rm2tz3am3', 'ke6gc9yu6ij5', 'prmst44110', 'prtzt73337', 'prvnd57593',
+    'qm5vq5yj2zc4', 'gk0lm5xr0nf1', 'mv8ue9ak9un4', 'lb2ef6wz4ml8'
 }
 
 waiting_requests = {}
