@@ -49,10 +49,19 @@ RE9_ORDER_NUMBER = '242875026'  # لقائمة RE9
 
 # قائمة حسابات RE9 (تذهب إلى PoweredSteamBot مع رقم طلب RE9)
 RE9_ACCOUNTS = {
-    'cpcnc993712', 'yf1qf5oh4xp0', 'qp6ef1dc6av3', 'ur8ts3zk4kf0', 'sf6mv9vq9gv8',
-    'gc9um3qb1sh6', 'bb1hr4yz8gs8', 'vt1ot6nt3ro2', 'de8mg8qz0yo8', 'ax8az1rv1ga7',
-    'tw5rm2tz3am3', 'ke6gc9yu6ij5', 'prmst44110', 'prtzt73337', 'prvnd57593',
-    'qm5vq5yj2zc4', 'gk0lm5xr0nf1', 'mv8ue9ak9un4', 'lb2ef6wz4ml8'
+    'Daebh38765', 'oestq39389', 'vexjs63688', 'czfud69759', 'vhsfr86833',
+    'gfazu66192', 'ehskf23923', 'rsqhh37790', 'pwmaw19203', 'jntbn15777',
+    '1326209838', '2257953041', '6645517453', '5049186218', '5925972332',
+    '7413082129', '8300916375', '065388777', '946589250', '49152374',
+    '934000489', '46317090', 'cpcnc993712', 'Yf1Qf5Oh4Xp0', 'Qp6Ef1Dc6Av3',
+    'Ur8Ts3Zk4Kf0', '572559328', '198284653', '037272961', 'Sf6Mv9Vq9Gv8',
+    'Gc9Um3Qb1Sh6', 'Bb1Hr4Yz8Gs8', 'Vt1Ot6Nt3Ro2', 'De8Mg8Qz0Yo8', 'Ax8Az1Rv1Ga7',
+    'Tw5Rm2Tz3Am3', 'Ke6Gc9Yu6Ij5', 'prmst44110', 'prtzt73337', 'prvnd57593',
+    'Qm5Vq5Yj2Zc4', 'Gk0Lm5Xr0Nf1', 'Mv8Ue9Ak9Un4', 'Lb2Ef6Wz4Ml8', 'Nf6Ps6Ql4Ey0',
+    'Ow9Pd9Vg0Cw3', 'Ib5Vo2Fq4Sl9', 'Si8Br7Mg5Qz3', 'Ia9Qb0Ty3Wd5', 'To0Nl1Dl7Jd5',
+    'Oq8Er6By5Xl1', 'Xd1Lx8Wk2Xs7', 'Jp8En2Ic5Qe8', '80120210', '278736644',
+    '70881975', '595790891', '553100435', '84471844', '262142644',
+    '236234910', '3998476', '051038808', '06602590', '060705706'
 }
 
 # قائمة الحسابات التي تذهب إلى PoweredSteamBot (مع رقم الطلب الأصلي)
