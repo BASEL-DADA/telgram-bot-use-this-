@@ -1173,31 +1173,45 @@ async def handle_powered_steam_reply(event):
 async def setup_bot_commands():
     """إعداد قائمة الأوامر المنسدلة في تيليجرام"""
     
-    # أوامر المستخدمين العاديين
+    # أوامر المستخدمين العاديين (فقط الأوامر الأساسية - بدون أي شيء يخص الأدمن)
     user_commands = [
         BotCommand(command='start', description='بدء البوت | Start the bot'),
         BotCommand(command='help', description='المساعدة | Help'),
         BotCommand(command='info', description='معلومات البوت | Bot info'),
     ]
     
-    # أوامر الأدمن (كاملة)
+    # أوامر الأدمن (جميع الأوامر الكاملة)
     admin_commands = [
+        # الأوامر الأساسية
         BotCommand(command='start', description='بدء البوت | Start'),
         BotCommand(command='help', description='جميع الأوامر | All commands'),
+        BotCommand(command='info', description='معلومات البوت | Bot info'),
+        
+        # الصيانة
         BotCommand(command='status', description='حالة البوت | Bot status'),
         BotCommand(command='maintenance', description='وضع الصيانة | Maintenance mode'),
+        
+        # إدارة الطلبات
         BotCommand(command='orders', description='عرض الطلبات | View orders'),
         BotCommand(command='add', description='إضافة طلب | Add order'),
         BotCommand(command='ban', description='حظر طلب | Ban order'),
         BotCommand(command='unban', description='إلغاء حظر | Unban order'),
         BotCommand(command='del', description='حذف طلب | Delete order'),
+        
+        # إدارة المستخدمين
         BotCommand(command='users', description='المستخدمين النشطين | Active users'),
         BotCommand(command='kick', description='طرد مستخدم | Kick user'),
+        
+        # الرسائل
         BotCommand(command='broadcast', description='رسالة للجميع | Broadcast'),
         BotCommand(command='msg', description='رسالة لرقم طلب | Message to order'),
+        
+        # الإحصائيات
         BotCommand(command='stats', description='إحصائيات | Statistics'),
         BotCommand(command='logs', description='سجل العمليات | Usage logs'),
         BotCommand(command='userlogs', description='سجل مستخدم | User logs'),
+        
+        # الأدوات
         BotCommand(command='reset', description='إعادة تعيين | Reset bot'),
         BotCommand(command='find', description='البحث عن حساب | Find account'),
     ]
