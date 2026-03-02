@@ -1,8 +1,9 @@
 from telethon import TelegramClient, events
 from telethon.sessions import StringSession
 from telethon.tl.functions.bots import SetBotCommandsRequest, ResetBotCommandsRequest
-from telethon.tl.types import BotCommand, BotCommandScopeDefault, BotCommandScopeUsers, BotCommandScopePeer
+from telethon.tl.types import BotCommand, BotCommandScopeDefault, BotCommandScopeUsers, BotCommandScopePeer, InputPeerUser
 from telethon.tl.functions.users import GetFullUserRequest
+from telethon import utils
 import time
 import asyncio
 import os
@@ -1222,8 +1223,9 @@ async def setup_bot_commands():
         for admin_username in ADMIN_USERNAMES:
             try:
                 admin_entity = await bot.get_entity(admin_username)
+                admin_input_peer = utils.get_input_peer(admin_entity)
                 await bot(SetBotCommandsRequest(
-                    scope=BotCommandScopePeer(peer=admin_entity),
+                    scope=BotCommandScopePeer(peer=admin_input_peer),
                     lang_code='',
                     commands=admin_commands
                 ))
