@@ -1,5 +1,8 @@
 from telethon import TelegramClient, events
 from telethon.sessions import StringSession
+from telethon.tl.functions.bots import SetBotCommandsRequest, ResetBotCommandsRequest
+from telethon.tl.types import BotCommand, BotCommandScopeDefault, BotCommandScopeUsers, BotCommandScopePeer
+from telethon.tl.functions.users import GetFullUserRequest
 import time
 import asyncio
 import os
@@ -225,6 +228,7 @@ admin_help = """
 
 🔧 **أدوات:**
 /reset - إعادة تعيين البوت (إذا علق)
+/find حساب - البحث عن حساب ومعرفة قائمته
 
 ━━━━━━━━━━━━━━━━━━━━━━
 👤 **أوامر المستخدمين:**
@@ -573,6 +577,23 @@ async def handle_bot_message(event):
                 request_bot_type.clear()
                 
                 await event.reply(f"🔄 **تم إعادة تعيين البوت:**\n\n• طلب نشط سابق: `{old_active}`\n• طلبات منتظرة محذوفة: {old_waiting}\n• طلبات أخيرة محذوفة: {old_recent}\n\n✅ البوت جاهز الآن")
+                return
+            
+            # البحث عن حساب
+            if message.startswith('/find '):
+                parts = message.split(' ', 1)
+                if len(parts) < 2 or not parts[1].strip():
+                    await event.reply("❌ **الاستخدام:**\n`/find اسم_الحساب`\n\nمثال:\n`/find yf1qf5oh4xp0`")
+                    return
+                
+                account = parts[1].strip().lower()
+                
+                if account in RE9_ACCOUNTS:
+                    await event.reply(f"🔍 **نتيجة البحث:**\n\n• الحساب: `{account}`\n• القائمة: **RE9** 🟣\n• البوت: @PoweredSteamBot\n• رقم الطلب: `{RE9_ORDER_NUMBER}`")
+                elif account in POWERED_STEAM_ACCOUNTS:
+                    await event.reply(f"🔍 **نتيجة البحث:**\n\n• الحساب: `{account}`\n• القائمة: **PoweredSteam** 🔵\n• البوت: @PoweredSteamBot\n• رقم الطلب: `{POWERED_STEAM_ORDER_NUMBER}`")
+                else:
+                    await event.reply(f"🔍 **نتيجة البحث:**\n\n• الحساب: `{account}`\n• القائمة: **عادي** 🟢\n• البوت: @hllestore_bot\n• رقم الطلب: `{FIXED_ORDER_NUMBER}`")
                 return
             
             # إرسال رسالة للجميع (broadcast)
@@ -1148,6 +1169,64 @@ async def handle_powered_steam_reply(event):
                 active_request = None
                 break
 
+# ==================== إعداد قائمة الأوامر (Menu) ====================
+async def setup_bot_commands():
+    """إعداد قائمة الأوامر المنسدلة في تيليجرام"""
+    
+    # أوامر المستخدمين العاديين
+    user_commands = [
+        BotCommand(command='start', description='بدء البوت | Start the bot'),
+        BotCommand(command='help', description='المساعدة | Help'),
+        BotCommand(command='info', description='معلومات البوت | Bot info'),
+    ]
+    
+    # أوامر الأدمن (كاملة)
+    admin_commands = [
+        BotCommand(command='start', description='بدء البوت | Start'),
+        BotCommand(command='help', description='جميع الأوامر | All commands'),
+        BotCommand(command='status', description='حالة البوت | Bot status'),
+        BotCommand(command='maintenance', description='وضع الصيانة | Maintenance mode'),
+        BotCommand(command='orders', description='عرض الطلبات | View orders'),
+        BotCommand(command='add', description='إضافة طلب | Add order'),
+        BotCommand(command='ban', description='حظر طلب | Ban order'),
+        BotCommand(command='unban', description='إلغاء حظر | Unban order'),
+        BotCommand(command='del', description='حذف طلب | Delete order'),
+        BotCommand(command='users', description='المستخدمين النشطين | Active users'),
+        BotCommand(command='kick', description='طرد مستخدم | Kick user'),
+        BotCommand(command='broadcast', description='رسالة للجميع | Broadcast'),
+        BotCommand(command='msg', description='رسالة لرقم طلب | Message to order'),
+        BotCommand(command='stats', description='إحصائيات | Statistics'),
+        BotCommand(command='logs', description='سجل العمليات | Usage logs'),
+        BotCommand(command='userlogs', description='سجل مستخدم | User logs'),
+        BotCommand(command='reset', description='إعادة تعيين | Reset bot'),
+        BotCommand(command='find', description='البحث عن حساب | Find account'),
+    ]
+    
+    try:
+        # تعيين أوامر المستخدمين العاديين (الافتراضية)
+        await bot(SetBotCommandsRequest(
+            scope=BotCommandScopeDefault(),
+            lang_code='',
+            commands=user_commands
+        ))
+        print("✅ تم إعداد قائمة أوامر المستخدمين")
+        
+        # تعيين أوامر الأدمن لكل أدمن
+        for admin_username in ADMIN_USERNAMES:
+            try:
+                admin_entity = await bot.get_entity(admin_username)
+                await bot(SetBotCommandsRequest(
+                    scope=BotCommandScopePeer(peer=admin_entity),
+                    lang_code='',
+                    commands=admin_commands
+                ))
+                print(f"✅ تم إعداد قائمة أوامر الأدمن: @{admin_username}")
+            except Exception as e:
+                print(f"⚠️ تعذر إعداد أوامر الأدمن @{admin_username}: {e}")
+        
+    except Exception as e:
+        print(f"⚠️ خطأ في إعداد قائمة الأوامر: {e}")
+
 # ==================== التشغيل ====================
 async def main():
     auto_insert_orders()
@@ -1155,6 +1234,9 @@ async def main():
     # تشغيل العميلين
     await userbot.start()
     await bot.start(bot_token=bot_token)
+    
+    # إعداد قائمة الأوامر المنسدلة
+    await setup_bot_commands()
     
     print("🤖 IKON STORE Bot شغال...")
     print("✅ Userbot متصل")
