@@ -165,7 +165,7 @@ user_help = """
 📖 **دليل استخدام البوت:**
 
 🔹 **الأوامر المتاحة:**
-• `exit` - تسجيل خروج وإدخال رقم طلب جديد
+• `/exit` - تسجيل خروج وإدخال رقم طلب جديد
 • `/help` - عرض هذه الرسالة
 • `/info` - معلومات عن البوت
 
@@ -233,17 +233,9 @@ admin_help = """
 ━━━━━━━━━━━━━━━━━━━━━━
 👤 **أوامر المستخدمين:**
 /info - معلومات عن البوت
-exit - تسجيل خروج وإدخال رقم طلب جديد
+/exit - تسجيل خروج وإدخال رقم طلب جديد
 
 ℹ️ /help - عرض هذه الرسالة
-
-💡 **أمثلة:**
-`/add 12345 67890 abc123`
-`/ban 12345`
-`/logs 12345`
-`/userlogs basel_iii`
-`/broadcast مرحبا بالجميع`
-`/msg 12345 رسالة خاصة`
 """
 
 # ==================== إدخال الطلبات الافتراضية ====================
@@ -697,7 +689,7 @@ async def handle_bot_message(event):
         return
     
     # أمر الخروج
-    if message.lower() == "exit":
+    if message.lower() == "/exit":
         connection = get_connection()
         with connection.cursor() as cursor:
             cursor.execute("DELETE FROM users WHERE user_id = %s;", (user_id,))
@@ -1178,6 +1170,7 @@ async def setup_bot_commands():
         BotCommand(command='start', description='بدء البوت | Start the bot'),
         BotCommand(command='help', description='المساعدة | Help'),
         BotCommand(command='info', description='معلومات البوت | Bot info'),
+        BotCommand(command='exit', description='تسجيل خروج | Logout'),
     ]
     
     # أوامر الأدمن (جميع الأوامر الكاملة)
