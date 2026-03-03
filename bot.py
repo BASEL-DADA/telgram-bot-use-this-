@@ -901,9 +901,13 @@ async def handle_bot_message(event):
     # تحديد أي بوت نستخدم بناءً على اسم الحساب
     account_lower = message.lower()
     
+    # تحويل القوائم إلى lowercase للمقارنة
+    re9_lower = {acc.lower() for acc in RE9_ACCOUNTS}
+    powered_lower = {acc.lower() for acc in POWERED_STEAM_ACCOUNTS}
+    
     global last_powered_list_type
     
-    if account_lower in RE9_ACCOUNTS:
+    if account_lower in re9_lower:
         # الحساب من قائمة RE9 - يذهب لـ PoweredSteamBot
         target_bot = await userbot.get_entity(powered_steam_bot_username)
         request_bot_type[user_id] = 'powered_re9'
@@ -919,7 +923,7 @@ async def handle_bot_message(event):
             last_powered_list_type = 'powered_re9'
             # اسم الحساب سيُرسل لاحقاً عندما يرد البوت
             
-    elif account_lower in POWERED_STEAM_ACCOUNTS:
+    elif account_lower in powered_lower:
         # الحساب من قائمة PoweredSteamBot الأصلية
         target_bot = await userbot.get_entity(powered_steam_bot_username)
         request_bot_type[user_id] = 'powered'
