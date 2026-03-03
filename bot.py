@@ -230,6 +230,13 @@ admin_help = """
 🔧 **أدوات:**
 /reset - إعادة تعيين البوت (إذا علق)
 /find حساب - البحث عن حساب ومعرفة قائمته
+/listcount - عدد الحسابات في كل قائمة
+
+🎮 **إدارة الحسابات:**
+/addre9 حساب1 حساب2 - إضافة لقائمة RE9
+/delre9 حساب - حذف من قائمة RE9
+/addpowered حساب1 حساب2 - إضافة لقائمة PoweredSteam
+/delpowered حساب - حذف من قائمة PoweredSteam
 
 ━━━━━━━━━━━━━━━━━━━━━━
 👤 **أوامر المستخدمين:**
@@ -581,12 +588,142 @@ async def handle_bot_message(event):
                 
                 account = parts[1].strip().lower()
                 
-                if account in RE9_ACCOUNTS:
+                # البحث case-insensitive
+                re9_lower = {acc.lower() for acc in RE9_ACCOUNTS}
+                powered_lower = {acc.lower() for acc in POWERED_STEAM_ACCOUNTS}
+                
+                if account in re9_lower:
                     await event.reply(f"🔍 **نتيجة البحث:**\n\n• الحساب: `{account}`\n• القائمة: **RE9** 🟣\n• البوت: @PoweredSteamBot\n• رقم الطلب: `{RE9_ORDER_NUMBER}`")
-                elif account in POWERED_STEAM_ACCOUNTS:
+                elif account in powered_lower:
                     await event.reply(f"🔍 **نتيجة البحث:**\n\n• الحساب: `{account}`\n• القائمة: **PoweredSteam** 🔵\n• البوت: @PoweredSteamBot\n• رقم الطلب: `{POWERED_STEAM_ORDER_NUMBER}`")
                 else:
                     await event.reply(f"🔍 **نتيجة البحث:**\n\n• الحساب: `{account}`\n• القائمة: **عادي** 🟢\n• البوت: @hllestore_bot\n• رقم الطلب: `{FIXED_ORDER_NUMBER}`")
+                return
+            
+            # إضافة حسابات لقائمة RE9
+            if message.startswith('/addre9 '):
+                parts = message.split()[1:]
+                if not parts:
+                    await event.reply("❌ **الاستخدام:**\n`/addre9 حساب1 حساب2 ...`\n\nمثال:\n`/addre9 account1 account2`")
+                    return
+                
+                added = []
+                already_exists = []
+                re9_lower = {acc.lower() for acc in RE9_ACCOUNTS}
+                
+                for acc in parts:
+                    acc_clean = acc.strip().lower()
+                    if acc_clean in re9_lower:
+                        already_exists.append(acc_clean)
+                    else:
+                        RE9_ACCOUNTS.add(acc_clean)
+                        added.append(acc_clean)
+                
+                response = "🟣 **إضافة لقائمة RE9:**\n\n"
+                if added:
+                    response += f"✅ تمت الإضافة ({len(added)}):\n`{', '.join(added)}`\n\n"
+                if already_exists:
+                    response += f"⚠️ موجود مسبقاً ({len(already_exists)}):\n`{', '.join(already_exists)}`\n\n"
+                response += f"📊 إجمالي حسابات RE9: {len(RE9_ACCOUNTS)}"
+                await event.reply(response)
+                return
+            
+            # إضافة حسابات لقائمة PoweredSteam
+            if message.startswith('/addpowered '):
+                parts = message.split()[1:]
+                if not parts:
+                    await event.reply("❌ **الاستخدام:**\n`/addpowered حساب1 حساب2 ...`\n\nمثال:\n`/addpowered account1 account2`")
+                    return
+                
+                added = []
+                already_exists = []
+                powered_lower = {acc.lower() for acc in POWERED_STEAM_ACCOUNTS}
+                
+                for acc in parts:
+                    acc_clean = acc.strip().lower()
+                    if acc_clean in powered_lower:
+                        already_exists.append(acc_clean)
+                    else:
+                        POWERED_STEAM_ACCOUNTS.add(acc_clean)
+                        added.append(acc_clean)
+                
+                response = "🔵 **إضافة لقائمة PoweredSteam:**\n\n"
+                if added:
+                    response += f"✅ تمت الإضافة ({len(added)}):\n`{', '.join(added)}`\n\n"
+                if already_exists:
+                    response += f"⚠️ موجود مسبقاً ({len(already_exists)}):\n`{', '.join(already_exists)}`\n\n"
+                response += f"📊 إجمالي حسابات PoweredSteam: {len(POWERED_STEAM_ACCOUNTS)}"
+                await event.reply(response)
+                return
+            
+            # حذف حساب من قائمة RE9
+            if message.startswith('/delre9 '):
+                parts = message.split()[1:]
+                if not parts:
+                    await event.reply("❌ **الاستخدام:**\n`/delre9 حساب1 حساب2 ...`")
+                    return
+                
+                removed = []
+                not_found = []
+                
+                for acc in parts:
+                    acc_clean = acc.strip().lower()
+                    # البحث والحذف case-insensitive
+                    found = None
+                    for existing in RE9_ACCOUNTS:
+                        if existing.lower() == acc_clean:
+                            found = existing
+                            break
+                    if found:
+                        RE9_ACCOUNTS.discard(found)
+                        removed.append(acc_clean)
+                    else:
+                        not_found.append(acc_clean)
+                
+                response = "🟣 **حذف من قائمة RE9:**\n\n"
+                if removed:
+                    response += f"✅ تم الحذف ({len(removed)}):\n`{', '.join(removed)}`\n\n"
+                if not_found:
+                    response += f"❌ غير موجود ({len(not_found)}):\n`{', '.join(not_found)}`\n\n"
+                response += f"📊 إجمالي حسابات RE9: {len(RE9_ACCOUNTS)}"
+                await event.reply(response)
+                return
+            
+            # حذف حساب من قائمة PoweredSteam
+            if message.startswith('/delpowered '):
+                parts = message.split()[1:]
+                if not parts:
+                    await event.reply("❌ **الاستخدام:**\n`/delpowered حساب1 حساب2 ...`")
+                    return
+                
+                removed = []
+                not_found = []
+                
+                for acc in parts:
+                    acc_clean = acc.strip().lower()
+                    found = None
+                    for existing in POWERED_STEAM_ACCOUNTS:
+                        if existing.lower() == acc_clean:
+                            found = existing
+                            break
+                    if found:
+                        POWERED_STEAM_ACCOUNTS.discard(found)
+                        removed.append(acc_clean)
+                    else:
+                        not_found.append(acc_clean)
+                
+                response = "🔵 **حذف من قائمة PoweredSteam:**\n\n"
+                if removed:
+                    response += f"✅ تم الحذف ({len(removed)}):\n`{', '.join(removed)}`\n\n"
+                if not_found:
+                    response += f"❌ غير موجود ({len(not_found)}):\n`{', '.join(not_found)}`\n\n"
+                response += f"📊 إجمالي حسابات PoweredSteam: {len(POWERED_STEAM_ACCOUNTS)}"
+                await event.reply(response)
+                return
+            
+            # عرض عدد الحسابات في كل قائمة
+            if message == '/listcount':
+                await event.reply(f"📊 **إحصائيات القوائم:**\n\n🟣 RE9: {len(RE9_ACCOUNTS)} حساب\n🔵 PoweredSteam: {len(POWERED_STEAM_ACCOUNTS)} حساب")
                 return
             
             # إرسال رسالة للجميع (broadcast)
@@ -1208,6 +1345,13 @@ async def setup_bot_commands():
         # الأدوات
         BotCommand(command='reset', description='إعادة تعيين | Reset bot'),
         BotCommand(command='find', description='البحث عن حساب | Find account'),
+        BotCommand(command='listcount', description='عدد الحسابات | List count'),
+        
+        # إدارة الحسابات
+        BotCommand(command='addre9', description='إضافة لـ RE9 | Add to RE9'),
+        BotCommand(command='delre9', description='حذف من RE9 | Del from RE9'),
+        BotCommand(command='addpowered', description='إضافة لـ Powered | Add to Powered'),
+        BotCommand(command='delpowered', description='حذف من Powered | Del from Powered'),
     ]
     
     try:
