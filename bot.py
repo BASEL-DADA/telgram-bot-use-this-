@@ -195,7 +195,6 @@ async def get_mjeedka_code(order_number: str, username: str) -> dict:
             # فحص الأخطاء
             if "خطأ" in html or "error" in html.lower():
                 # استخراج رسالة الخطأ
-                import re
                 error_match = re.search(r"<p>([^<]+)</p>", html)
                 error_msg = error_match.group(1) if error_match else "خطأ غير معروف"
                 return {'success': False, 'error': error_msg}
