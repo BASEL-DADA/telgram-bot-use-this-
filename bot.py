@@ -52,12 +52,11 @@ FIXED_ORDER_NUMBER = '208718912'
 POWERED_STEAM_ORDER_NUMBER = '242549795'  # للقائمة الأصلية
 RE9_ORDER_NUMBER = '242875026'  # لقائمة RE9
 
-# رقم طلب Mjeedka (موقع ويب)
-MJEEDKA_ORDER_NUMBER = '245334253'
-
 # قائمة حسابات Mjeedka (تذهب لموقع app.mjeedka.com)
+# الشكل: {اسم_الحساب: رقم_الطلب}
 MJEEDKA_ACCOUNTS = {
-    'Qk6Yo2Fn7Oi9'
+    'Qk6Yo2Fn7Oi9': '245334253',
+    'mjeedka_resident927': '245239530'
 }
 
 # قائمة حسابات RE9 (تذهب إلى PoweredSteamBot مع رقم طلب RE9)
@@ -311,7 +310,7 @@ admin_help = """
 /listcount - عدد الحسابات في كل قائمة
 
 🎮 **إدارة الحسابات:**
-/addmjeedka حساب1 حساب2 - إضافة لقائمة Mjeedka (موقع ويب)
+/addmjeedka رقم_الطلب الحساب - إضافة لقائمة Mjeedka (موقع ويب)
 /delmjeedka حساب - حذف من قائمة Mjeedka
 /addre9 حساب1 حساب2 - إضافة لقائمة RE9
 /delre9 حساب - حذف من قائمة RE9
@@ -671,10 +670,11 @@ async def handle_bot_message(event):
                 # البحث case-insensitive
                 re9_lower = {acc.lower() for acc in RE9_ACCOUNTS}
                 powered_lower = {acc.lower() for acc in POWERED_STEAM_ACCOUNTS}
-                mjeedka_lower = {acc.lower() for acc in MJEEDKA_ACCOUNTS}
+                mjeedka_lower = {acc.lower(): order for acc, order in MJEEDKA_ACCOUNTS.items()}
                 
                 if account in mjeedka_lower:
-                    await event.reply(f"🔍 **نتيجة البحث:**\n\n• الحساب: `{account}`\n• القائمة: **Mjeedka** 🌐\n• المصدر: موقع app.mjeedka.com\n• رقم الطلب: `{MJEEDKA_ORDER_NUMBER}`\n• الحالة: ✅ **نشط**")
+                    order_num = mjeedka_lower[account]
+                    await event.reply(f"🔍 **نتيجة البحث:**\n\n• الحساب: `{account}`\n• القائمة: **Mjeedka** 🌐\n• المصدر: موقع app.mjeedka.com\n• رقم الطلب: `{order_num}`\n• الحالة: ✅ **نشط**")
                 elif account in re9_lower:
                     await event.reply(f"🔍 **نتيجة البحث:**\n\n• الحساب: `{account}`\n• القائمة: **RE9** 🟣\n• الحالة: ❌ **غير مدعوم** (الحساب غير موجود)")
                 elif account in powered_lower:
@@ -807,61 +807,41 @@ async def handle_bot_message(event):
             # إضافة حسابات لقائمة Mjeedka
             if message.startswith('/addmjeedka '):
                 parts = message.split()[1:]
-                if not parts:
-                    await event.reply("❌ **الاستخدام:**\n`/addmjeedka حساب1 حساب2 ...`\n\nمثال:\n`/addmjeedka Qk6Yo2Fn7Oi9`")
+                if len(parts) < 2:
+                    await event.reply("❌ **الاستخدام:**\n`/addmjeedka رقم_الطلب اسم_الحساب`\n\nمثال:\n`/addmjeedka 245334253 Qk6Yo2Fn7Oi9`")
                     return
                 
-                added = []
-                already_exists = []
-                mjeedka_lower = {acc.lower() for acc in MJEEDKA_ACCOUNTS}
+                order_num = parts[0].strip()
+                acc_name = parts[1].strip()
                 
-                for acc in parts:
-                    acc_clean = acc.strip()
-                    if acc_clean.lower() in mjeedka_lower:
-                        already_exists.append(acc_clean)
-                    else:
-                        MJEEDKA_ACCOUNTS.add(acc_clean)
-                        added.append(acc_clean)
+                mjeedka_lower = {acc.lower() for acc in MJEEDKA_ACCOUNTS.keys()}
                 
-                response = "🌐 **إضافة لقائمة Mjeedka:**\n\n"
-                if added:
-                    response += f"✅ تمت الإضافة ({len(added)}):\n`{', '.join(added)}`\n\n"
-                if already_exists:
-                    response += f"⚠️ موجود مسبقاً ({len(already_exists)}):\n`{', '.join(already_exists)}`\n\n"
-                response += f"📊 إجمالي حسابات Mjeedka: {len(MJEEDKA_ACCOUNTS)}"
-                await event.reply(response)
+                if acc_name.lower() in mjeedka_lower:
+                    await event.reply(f"⚠️ الحساب `{acc_name}` موجود مسبقاً في القائمة")
+                else:
+                    MJEEDKA_ACCOUNTS[acc_name] = order_num
+                    await event.reply(f"✅ **تمت الإضافة لقائمة Mjeedka:**\n\n• الحساب: `{acc_name}`\n• رقم الطلب: `{order_num}`\n\n📊 إجمالي حسابات Mjeedka: {len(MJEEDKA_ACCOUNTS)}")
                 return
             
             # حذف حساب من قائمة Mjeedka
             if message.startswith('/delmjeedka '):
                 parts = message.split()[1:]
                 if not parts:
-                    await event.reply("❌ **الاستخدام:**\n`/delmjeedka حساب1 حساب2 ...`")
+                    await event.reply("❌ **الاستخدام:**\n`/delmjeedka حساب`")
                     return
                 
-                removed = []
-                not_found = []
+                acc_name = parts[0].strip()
+                found = None
+                for existing in MJEEDKA_ACCOUNTS.keys():
+                    if existing.lower() == acc_name.lower():
+                        found = existing
+                        break
                 
-                for acc in parts:
-                    acc_clean = acc.strip().lower()
-                    found = None
-                    for existing in MJEEDKA_ACCOUNTS:
-                        if existing.lower() == acc_clean:
-                            found = existing
-                            break
-                    if found:
-                        MJEEDKA_ACCOUNTS.discard(found)
-                        removed.append(acc_clean)
-                    else:
-                        not_found.append(acc_clean)
-                
-                response = "🌐 **حذف من قائمة Mjeedka:**\n\n"
-                if removed:
-                    response += f"✅ تم الحذف ({len(removed)}):\n`{', '.join(removed)}`\n\n"
-                if not_found:
-                    response += f"❌ غير موجود ({len(not_found)}):\n`{', '.join(not_found)}`\n\n"
-                response += f"📊 إجمالي حسابات Mjeedka: {len(MJEEDKA_ACCOUNTS)}"
-                await event.reply(response)
+                if found:
+                    del MJEEDKA_ACCOUNTS[found]
+                    await event.reply(f"✅ تم حذف `{acc_name}` من قائمة Mjeedka\n\n📊 إجمالي حسابات Mjeedka: {len(MJEEDKA_ACCOUNTS)}")
+                else:
+                    await event.reply(f"❌ الحساب `{acc_name}` غير موجود في القائمة")
                 return
             
             # عرض عدد الحسابات في كل قائمة
@@ -1047,7 +1027,7 @@ async def handle_bot_message(event):
     # تحويل القوائم إلى lowercase للمقارنة
     re9_lower = {acc.lower() for acc in RE9_ACCOUNTS}
     powered_lower = {acc.lower() for acc in POWERED_STEAM_ACCOUNTS}
-    mjeedka_lower = {acc.lower() for acc in MJEEDKA_ACCOUNTS}
+    mjeedka_lower = {acc.lower() for acc in MJEEDKA_ACCOUNTS.keys()}
     
     # التحقق إذا كان الحساب من قوائم PoweredSteamBot (لم تعد مدعومة)
     if account_lower in re9_lower or account_lower in powered_lower:
@@ -1059,13 +1039,21 @@ async def handle_bot_message(event):
     # ==================== حسابات Mjeedka (موقع ويب) ====================
     if account_lower in mjeedka_lower:
         print(f"🌐 الحساب {message} من قائمة Mjeedka - جلب الكود من الموقع")
-        await event.reply("⏳ جاري جلب رمز التحقق... انتظر 15 ثانية")
+        
+        # جلب رقم الطلب الخاص بهذا الحساب
+        mjeedka_order = None
+        for acc, order in MJEEDKA_ACCOUNTS.items():
+            if acc.lower() == account_lower:
+                mjeedka_order = order
+                break
+        
+        await event.reply("✅ الحساب جاهز عزيزي العميل، الآن قم بتسجيل الدخول على الحساب عبر منصة ستيم\nوسيتم ارسال رمز التحقق إليك خلال [ 15 ثانية - 3 دقائق ] ⏱️")
         
         # انتظار 15 ثانية قبل إرسال الطلب (حسب متطلبات الموقع)
         await asyncio.sleep(15)
         
         # جلب الكود من الموقع
-        result = await get_mjeedka_code(MJEEDKA_ORDER_NUMBER, message)
+        result = await get_mjeedka_code(mjeedka_order, message)
         
         if result['success']:
             code = result['code']
@@ -1077,7 +1065,11 @@ async def handle_bot_message(event):
             print(f"✅ تم جلب الكود من Mjeedka: {code}")
         else:
             error = result.get('error', 'خطأ غير معروف')
-            await event.reply(f"❌ {error}")
+            # التحقق إذا انتهت المحاولات اليومية
+            if "5" in error or "محاول" in error or "انتهت" in error or "لم يتم العثور" in error:
+                await event.reply("🚫 **الحساب معلّق مؤقتاً من قبل Steam**\n\nيرجى المحاولة لاحقاً أو التواصل مع الدعم.")
+            else:
+                await event.reply(f"❌ {error}")
             print(f"❌ خطأ Mjeedka: {error}")
         
         # تسجيل الانتظار لمنع الطلبات المتكررة
