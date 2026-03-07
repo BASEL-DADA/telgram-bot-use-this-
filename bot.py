@@ -32,25 +32,19 @@ if not bot_token:
     raise ValueError("❌ BOT_TOKEN غير موجود!")
 
 # ==================== العملاء ====================
-# عميل Userbot للتواصل مع PoweredSteamBot
+# عميل Userbot للتواصل مع بوتات Steam
 userbot = TelegramClient(StringSession(session_string), api_id, api_hash)
 
 # عميل البوت للتواصل مع المستخدمين والأدمن
 from telethon import TelegramClient as BotClient
 bot = TelegramClient('bot', api_id, api_hash)
 
-# البوت الجديد (7LE STORE)
+# البوت الجديد (7LE STORE) - حلّة ستور
 steam_bot_username = 'hllestore_bot'
-# البوت القديم (PoweredSteamBot) - للحسابات المحددة
-powered_steam_bot_username = 'PoweredSteamBot'
 bot_username = 'ORDERSIKON_bot'  # يوزرنيم البوت الجديد
 
 # رقم الطلب الثابت للبوت الجديد (7LE STORE)
 FIXED_ORDER_NUMBER = '208718912'
-
-# أرقام طلبات PoweredSteamBot
-POWERED_STEAM_ORDER_NUMBER = '242549795'  # للقائمة الأصلية
-RE9_ORDER_NUMBER = '242875026'  # لقائمة RE9
 
 # قائمة حسابات مجد (تذهب لموقع app.mjeedka.com)
 # الشكل: {اسم_الحساب: رقم_الطلب}
@@ -60,64 +54,14 @@ MAJD_ACCOUNTS = {
     'mjeedka_resident': '245725023'
 }
 
-# قائمة حسابات RE9 (تذهب إلى PoweredSteamBot مع رقم طلب RE9)
-RE9_ACCOUNTS = {
-    'Daebh38765', 'oestq39389', 'vexjs63688', 'czfud69759', 'vhsfr86833',
-    'gfazu66192', 'ehskf23923', 'rsqhh37790', 'pwmaw19203', 'jntbn15777',
-    '1326209838', '2257953041', '6645517453', '5049186218', '5925972332',
-    '7413082129', '8300916375', '065388777', '946589250', '49152374',
-    '934000489', '46317090', 'cpcnc993712', 'Yf1Qf5Oh4Xp0', 'Qp6Ef1Dc6Av3',
-    'Ur8Ts3Zk4Kf0', '572559328', '198284653', '037272961', 'Sf6Mv9Vq9Gv8',
-    'Gc9Um3Qb1Sh6', 'Bb1Hr4Yz8Gs8', 'Vt1Ot6Nt3Ro2', 'De8Mg8Qz0Yo8', 'Ax8Az1Rv1Ga7',
-    'Tw5Rm2Tz3Am3', 'Ke6Gc9Yu6Ij5', 'prmst44110', 'prtzt73337', 'prvnd57593',
-    'Qm5Vq5Yj2Zc4', 'Gk0Lm5Xr0Nf1', 'Mv8Ue9Ak9Un4', 'Lb2Ef6Wz4Ml8', 'Nf6Ps6Ql4Ey0',
-    'Ow9Pd9Vg0Cw3', 'Ib5Vo2Fq4Sl9', 'Si8Br7Mg5Qz3', 'Ia9Qb0Ty3Wd5', 'To0Nl1Dl7Jd5',
-    'Oq8Er6By5Xl1', 'Xd1Lx8Wk2Xs7', 'Jp8En2Ic5Qe8', '80120210', '278736644',
-    '70881975', '595790891', '553100435', '84471844', '262142644',
-    '236234910', '3998476', '051038808', '06602590', '060705706'
-}
-
-# قائمة الحسابات التي تذهب إلى PoweredSteamBot (مع رقم الطلب الأصلي)
-POWERED_STEAM_ACCOUNTS = {
-    'qapo2d', 'diteks', 'retlau', 'mrdarkness26', 'skytvstore0', 'skytvgames0',
-    'chrismendoza', 'uzab54709', 'kcqum63847', 'ywfkn71206', 'rapcs71404',
-    'cevjr69650', 'wsgln795693', 'mzxw6342', 'fwskfjmsk', 'fdssdaju',
-    'gkhsj96522', 'jjuau71591', 'ppjfq021084', 'vgnpu15312', 'tyuqg35761',
-    'ci0jy7uu2dc2', 'fhhxh50203', 'ky3np5vb7q', 'gblga428', 'nbfbe61423',
-    'ogcoe40882', 'fowyw07349', 'qe9190211', 'oc6zw0vr9xc0', 'vl2hh3zi7iq0',
-    '4745649108', 'oqtzv12285', 'sq251666', 'jgqa72431', 'ci0hy1uf3zl1',
-    'cparm91075', '2b092449', 'smiwt62938', 'aleeshamahxbq', 'vhe99034',
-    'wscfi02971', 'honeypayne36565', 'gyvfb49046', 'dasiisamoilov766',
-    'ztmys93429', 'sgxunagc5212', 'ag7ay2050', 'bf0qmwlf0s', 'ohnyf579110',
-    'nnfjg073', 'bm8gf5py8an0', 'cnini68869', 'xolzb825', 'quzzn64549',
-    'tkm75854', 'fdjhv32611', 'tqbma351', 'qsaij049', 'lzbcp748', 'eisyt78173',
-    'samu_2401', 'elninjo36', 'jessicadolittle8v', 'doggs2212', 'achilleee2',
-    'qxen85607', 'yzvhr48817', 'azza_claydog', 'qbidw69605', 'njnzin2575',
-    'no3ys6ct4ud0', 'binff93661', 'pr7ue2gn9hv3', 'nikolya_oss1233', 'lslbi05158',
-    'obrqn26579', 'zcwn5836378', 'ecgxc961514', 'badotez', 'paulhendrikhammelmann',
-    'hormonnisa2', 'unthc6ts', 'northcertpasscow1980', 'xbydk88881', 'zzisld9046',
-    'harzke2', 'simonremol0t', 'dhgpr09228', 'dragon4404', 'bubblematend1972',
-    'qrmdxtob6843', 'p7ao0hxls4', 'mattia3431', 'sundimemoli7g', 'lxakeisl',
-    'alarmingbystand2', 'danwangbule', 'godofredo57', 'detroit_st',
-    'amanda_reflect738086', 'vmjix46135', 'srwbi52693', 'pd67gxtl', 'witcher3_st',
-    'xoool51874', 'xl2eb1bm1ks4',
-    # حسابات جديدة مضافة
-    'iejb44869', '6772882931', 'rfkeh55179', '70187659', 'er1260197',
-    'naubm12923', 'nightmares_st', 'cycacai46'
-}
-
 waiting_requests = {}
 active_request = None
 welcomed_users = set()
 auto_replied_users = set()  # لتجنب الرد المتكرر
 
 # لتتبع أي بوت يستخدم لكل طلب
-# الشكل: {user_id: 'powered' أو 'powered_re9' أو 'hlle'}
+# الشكل: {user_id: 'hlle' أو 'majd'}
 request_bot_type = {}
-
-# لتتبع آخر قائمة استُخدمت مع PoweredSteamBot (لتجنب إرسال رقم الطلب مرة ثانية)
-# القيم: 'powered' أو 'powered_re9' أو None
-last_powered_list_type = None
 
 # قائمة للاحتفاظ بالطلبات الأخيرة حتى لو انتهى الـ timeout (للتعامل مع الردود المتأخرة)
 # الشكل: {account_name: {'user_id': user_id, 'time': timestamp}}
@@ -313,10 +257,6 @@ admin_help = """
 🎮 **إدارة الحسابات:**
 /addmajd رقم_الطلب الحساب - إضافة لقائمة مجد (موقع ويب)
 /delmajd حساب - حذف من قائمة مجد
-/addre9 حساب1 حساب2 - إضافة لقائمة RE9
-/delre9 حساب - حذف من قائمة RE9
-/addpowered حساب1 حساب2 - إضافة لقائمة PoweredSteam
-/delpowered حساب - حذف من قائمة PoweredSteam
 
 ━━━━━━━━━━━━━━━━━━━━━━
 👤 **أوامر المستخدمين:**
@@ -669,140 +609,13 @@ async def handle_bot_message(event):
                 account = parts[1].strip().lower()
                 
                 # البحث case-insensitive
-                re9_lower = {acc.lower() for acc in RE9_ACCOUNTS}
-                powered_lower = {acc.lower() for acc in POWERED_STEAM_ACCOUNTS}
                 majd_lower = {acc.lower(): order for acc, order in MAJD_ACCOUNTS.items()}
                 
                 if account in majd_lower:
                     order_num = majd_lower[account]
                     await event.reply(f"🔍 **نتيجة البحث:**\n\n• الحساب: `{account}`\n• القائمة: **مجد** 🌐\n• المصدر: موقع app.mjeedka.com\n• رقم الطلب: `{order_num}`\n• الحالة: ✅ **نشط**")
-                elif account in re9_lower:
-                    await event.reply(f"🔍 **نتيجة البحث:**\n\n• الحساب: `{account}`\n• القائمة: **RE9** 🟣\n• الحالة: ❌ **غير مدعوم** (الحساب غير موجود)")
-                elif account in powered_lower:
-                    await event.reply(f"🔍 **نتيجة البحث:**\n\n• الحساب: `{account}`\n• القائمة: **PoweredSteam** 🔵\n• الحالة: ❌ **غير مدعوم** (الحساب غير موجود)")
                 else:
-                    await event.reply(f"🔍 **نتيجة البحث:**\n\n• الحساب: `{account}`\n• القائمة: **عادي** 🟢\n• البوت: @hllestore_bot\n• رقم الطلب: `{FIXED_ORDER_NUMBER}`")
-                return
-            
-            # إضافة حسابات لقائمة RE9
-            if message.startswith('/addre9 '):
-                parts = message.split()[1:]
-                if not parts:
-                    await event.reply("❌ **الاستخدام:**\n`/addre9 حساب1 حساب2 ...`\n\nمثال:\n`/addre9 account1 account2`")
-                    return
-                
-                added = []
-                already_exists = []
-                re9_lower = {acc.lower() for acc in RE9_ACCOUNTS}
-                
-                for acc in parts:
-                    acc_clean = acc.strip().lower()
-                    if acc_clean in re9_lower:
-                        already_exists.append(acc_clean)
-                    else:
-                        RE9_ACCOUNTS.add(acc_clean)
-                        added.append(acc_clean)
-                
-                response = "🟣 **إضافة لقائمة RE9:**\n\n"
-                if added:
-                    response += f"✅ تمت الإضافة ({len(added)}):\n`{', '.join(added)}`\n\n"
-                if already_exists:
-                    response += f"⚠️ موجود مسبقاً ({len(already_exists)}):\n`{', '.join(already_exists)}`\n\n"
-                response += f"📊 إجمالي حسابات RE9: {len(RE9_ACCOUNTS)}"
-                await event.reply(response)
-                return
-            
-            # إضافة حسابات لقائمة PoweredSteam
-            if message.startswith('/addpowered '):
-                parts = message.split()[1:]
-                if not parts:
-                    await event.reply("❌ **الاستخدام:**\n`/addpowered حساب1 حساب2 ...`\n\nمثال:\n`/addpowered account1 account2`")
-                    return
-                
-                added = []
-                already_exists = []
-                powered_lower = {acc.lower() for acc in POWERED_STEAM_ACCOUNTS}
-                
-                for acc in parts:
-                    acc_clean = acc.strip().lower()
-                    if acc_clean in powered_lower:
-                        already_exists.append(acc_clean)
-                    else:
-                        POWERED_STEAM_ACCOUNTS.add(acc_clean)
-                        added.append(acc_clean)
-                
-                response = "🔵 **إضافة لقائمة PoweredSteam:**\n\n"
-                if added:
-                    response += f"✅ تمت الإضافة ({len(added)}):\n`{', '.join(added)}`\n\n"
-                if already_exists:
-                    response += f"⚠️ موجود مسبقاً ({len(already_exists)}):\n`{', '.join(already_exists)}`\n\n"
-                response += f"📊 إجمالي حسابات PoweredSteam: {len(POWERED_STEAM_ACCOUNTS)}"
-                await event.reply(response)
-                return
-            
-            # حذف حساب من قائمة RE9
-            if message.startswith('/delre9 '):
-                parts = message.split()[1:]
-                if not parts:
-                    await event.reply("❌ **الاستخدام:**\n`/delre9 حساب1 حساب2 ...`")
-                    return
-                
-                removed = []
-                not_found = []
-                
-                for acc in parts:
-                    acc_clean = acc.strip().lower()
-                    # البحث والحذف case-insensitive
-                    found = None
-                    for existing in RE9_ACCOUNTS:
-                        if existing.lower() == acc_clean:
-                            found = existing
-                            break
-                    if found:
-                        RE9_ACCOUNTS.discard(found)
-                        removed.append(acc_clean)
-                    else:
-                        not_found.append(acc_clean)
-                
-                response = "🟣 **حذف من قائمة RE9:**\n\n"
-                if removed:
-                    response += f"✅ تم الحذف ({len(removed)}):\n`{', '.join(removed)}`\n\n"
-                if not_found:
-                    response += f"❌ غير موجود ({len(not_found)}):\n`{', '.join(not_found)}`\n\n"
-                response += f"📊 إجمالي حسابات RE9: {len(RE9_ACCOUNTS)}"
-                await event.reply(response)
-                return
-            
-            # حذف حساب من قائمة PoweredSteam
-            if message.startswith('/delpowered '):
-                parts = message.split()[1:]
-                if not parts:
-                    await event.reply("❌ **الاستخدام:**\n`/delpowered حساب1 حساب2 ...`")
-                    return
-                
-                removed = []
-                not_found = []
-                
-                for acc in parts:
-                    acc_clean = acc.strip().lower()
-                    found = None
-                    for existing in POWERED_STEAM_ACCOUNTS:
-                        if existing.lower() == acc_clean:
-                            found = existing
-                            break
-                    if found:
-                        POWERED_STEAM_ACCOUNTS.discard(found)
-                        removed.append(acc_clean)
-                    else:
-                        not_found.append(acc_clean)
-                
-                response = "🔵 **حذف من قائمة PoweredSteam:**\n\n"
-                if removed:
-                    response += f"✅ تم الحذف ({len(removed)}):\n`{', '.join(removed)}`\n\n"
-                if not_found:
-                    response += f"❌ غير موجود ({len(not_found)}):\n`{', '.join(not_found)}`\n\n"
-                response += f"📊 إجمالي حسابات PoweredSteam: {len(POWERED_STEAM_ACCOUNTS)}"
-                await event.reply(response)
+                    await event.reply(f"🔍 **نتيجة البحث:**\n\n• الحساب: `{account}`\n• القائمة: **حلّة ستور** 🟢\n• البوت: @hllestore_bot\n• رقم الطلب: `{FIXED_ORDER_NUMBER}`")
                 return
             
             # إضافة حسابات لقائمة مجد
@@ -847,7 +660,7 @@ async def handle_bot_message(event):
             
             # عرض عدد الحسابات في كل قائمة
             if message == '/listcount':
-                await event.reply(f"📊 **إحصائيات القوائم:**\n\n🌐 مجد: {len(MAJD_ACCOUNTS)} حساب (✅ نشطة)\n🟣 RE9: {len(RE9_ACCOUNTS)} حساب (❌ غير مدعومة)\n🔵 PoweredSteam: {len(POWERED_STEAM_ACCOUNTS)} حساب (❌ غير مدعومة)\n\n⚠️ قوائم RE9 و PoweredSteam معطّلة")
+                await event.reply(f"📊 **إحصائيات القوائم:**\n\n🌐 **مجد**: {len(MAJD_ACCOUNTS)} حساب\n🟢 **حلّة ستور**: جميع الحسابات الأخرى")
                 return
             
             # إرسال رسالة للجميع (broadcast)
@@ -1025,17 +838,8 @@ async def handle_bot_message(event):
     # تحديد أي بوت نستخدم بناءً على اسم الحساب
     account_lower = message.lower()
     
-    # تحويل القوائم إلى lowercase للمقارنة
-    re9_lower = {acc.lower() for acc in RE9_ACCOUNTS}
-    powered_lower = {acc.lower() for acc in POWERED_STEAM_ACCOUNTS}
+    # تحويل قائمة مجد إلى lowercase للمقارنة
     majd_lower = {acc.lower() for acc in MAJD_ACCOUNTS.keys()}
-    
-    # التحقق إذا كان الحساب من قوائم PoweredSteamBot (لم تعد مدعومة)
-    if account_lower in re9_lower or account_lower in powered_lower:
-        # إرسال رسالة "الحساب غير موجود"
-        print(f"❌ الحساب {message} من قوائم PoweredSteamBot - لم يعد مدعوماً")
-        await event.reply("❌ الحساب غير موجود")
-        return
     
     # ==================== حسابات مجد (موقع ويب) ====================
     if account_lower in majd_lower:
@@ -1304,149 +1108,6 @@ async def handle_steam_reply(event):
                 active_request = None
                 break
 
-# ==================== معالجة ردود PoweredSteamBot (معطّل - لم يعد مستخدماً) ====================
-@userbot.on(events.NewMessage(from_users=powered_steam_bot_username))
-async def handle_powered_steam_reply(event):
-    # معطّل - لم يعد يُستخدم PoweredSteamBot
-    return
-    
-    global active_request
-    message = event.raw_text.strip()
-    
-    print(f"📨 رسالة من PoweredSteamBot: {message}")
-    
-    # ==================== رد بعد إرسال رقم الطلب - طلب اسم الحساب ====================
-    # "ممتاز. الرجاء كتابة اسم حساب ستيم المراد الدخول اليه"
-    # أو أي رد آخر بعد رقم الطلب يطلب اسم الحساب
-    if "ممتاز" in message or "الرجاء كتابة اسم حساب" in message or "اسم حساب ستيم" in message:
-        print(f"✅ PoweredSteamBot: طلب اسم الحساب - نرسله تلقائياً")
-        # نرسل اسم الحساب تلقائياً
-        powered_bot = await userbot.get_entity(powered_steam_bot_username)
-        for user_id, data in list(waiting_requests.items()):
-            if request_bot_type.get(user_id) in ['powered', 'powered_re9']:
-                account_name = data.get('account', '')
-                if account_name:
-                    print(f"📤 إرسال اسم الحساب تلقائياً: {account_name}")
-                    await userbot.send_message(powered_bot, account_name)
-                    break
-        return
-    
-    # ==================== تأكيد تسجيل الدخول ====================
-    # "الرجاء تسجيل دخول على حساب xxx عبر منصة ستيم"
-    if "الرجاء تسجيل دخول على حساب" in message or "تسجيل الدخول على حساب" in message:
-        print(f"✅ PoweredSteamBot: تأكيد تسجيل الدخول")
-        # نرسل رسالة للمستخدم أن عليه تسجيل الدخول
-        for user_id, data in list(waiting_requests.items()):
-            if request_bot_type.get(user_id) in ['powered', 'powered_re9']:
-                await bot.send_message(user_id, messages['login_message'])
-                print(f"📨 أرسلنا رسالة تسجيل الدخول للمستخدم {user_id}")
-        return
-    
-    # ==================== رمز التحقق ====================
-    # "رمز تحقق لحساب xxx, هو XXXXX"
-    if "رمز تحقق لحساب" in message or ("رمز تحقق" in message and "هو" in message):
-        print(f"📩 PoweredSteamBot: رمز تحقق: {message}")
-        
-        account_found = False
-        
-        # إرسال الكود لجميع من ينتظرون من PoweredSteamBot
-        for uid, data in list(waiting_requests.items()):
-            if request_bot_type.get(uid) in ['powered', 'powered_re9']:
-                await bot.send_message(uid, f"✅ {message}\n\nيوم سعيد 🫶")
-                print(f"📨 أرسلنا الكود للمستخدم {uid}")
-                del waiting_requests[uid]
-                if uid in request_bot_type:
-                    del request_bot_type[uid]
-                account_found = True
-        
-        active_request = None
-        
-        # أيضاً نبحث في recent_requests
-        if not account_found and recent_requests:
-            for account, data in list(recent_requests.items()):
-                uid = data['user_id']
-                if request_bot_type.get(uid) in ['powered', 'powered_re9']:
-                    await bot.send_message(uid, f"✅ {message}\n\nيوم سعيد 🫶")
-                    print(f"📨 أرسلنا الكود للمستخدم {uid} من recent_requests")
-                    del recent_requests[account]
-                    if uid in request_bot_type:
-                        del request_bot_type[uid]
-                    account_found = True
-                    break
-        
-        if not account_found:
-            print("⚠️ PoweredSteamBot: لا يوجد أحد ينتظر رمز")
-        
-        return
-    
-    # ==================== حساب معلق ====================
-    # "الدخول لحساب xxx عبر منصة ستيم, معلق لفترة معينة"
-    if "معلق" in message:
-        print(f"🔴 PoweredSteamBot: حساب معلق: {message}")
-        
-        # حذف أي ذكر لـ skytvx
-        fixed_message = message.replace("@ skytvx", "@ikon.storee")
-        fixed_message = fixed_message.replace("@skytvx", "@ikon.storee")
-        fixed_message = fixed_message.replace("@ SkyTvX", "@ikon.storee")
-        fixed_message = fixed_message.replace("@SkyTvX", "@ikon.storee")
-        
-        # حذف السطر الذي يحتوي على skytvx بالكامل
-        lines = fixed_message.split('\n')
-        cleaned_lines = []
-        for line in lines:
-            if 'skytvx' not in line.lower():
-                cleaned_lines.append(line)
-        fixed_message = '\n'.join(cleaned_lines)
-        
-        for uid, data in list(waiting_requests.items()):
-            if request_bot_type.get(uid) in ['powered', 'powered_re9']:
-                await bot.send_message(uid, f"🚫 {fixed_message.strip()}\n\nللتواصل: @ikon.storee (انستغرام)")
-                del waiting_requests[uid]
-                if uid in request_bot_type:
-                    del request_bot_type[uid]
-        
-        active_request = None
-        return
-    
-    # ==================== تجري عملية دخول (الحساب مشغول) ====================
-    if "تجرى عملية الدخول" in message or "حاليا تجرى" in message:
-        print(f"🔵 PoweredSteamBot: الحساب مشغول: {message}")
-        for uid, data in list(waiting_requests.items()):
-            if request_bot_type.get(uid) in ['powered', 'powered_re9']:
-                await bot.send_message(uid, f"⚠️ حالياً تجري عملية دخول على هذا الحساب.\nالرجاء الانتظار 5 دقائق ثم المحاولة مجدداً.")
-                del waiting_requests[uid]
-                if uid in request_bot_type:
-                    del request_bot_type[uid]
-        active_request = None
-        return
-    
-    # ==================== حساب غير موجود ====================
-    if "غير موجود" in message or "not found" in message.lower():
-        print(f"🔴 PoweredSteamBot: حساب غير موجود: {message}")
-        for uid, data in list(waiting_requests.items()):
-            if request_bot_type.get(uid) in ['powered', 'powered_re9']:
-                await bot.send_message(uid, f"❌ {message}")
-                del waiting_requests[uid]
-                if uid in request_bot_type:
-                    del request_bot_type[uid]
-        active_request = None
-        return
-    
-    # ==================== رسالة أخرى ====================
-    print(f"📄 PoweredSteamBot: رسالة أخرى: {message}")
-    # إذا الرسالة تحتوي على كود (5 أحرف/أرقام)
-    codes = re.findall(r'\b[A-Z0-9]{5}\b', message)
-    if codes and waiting_requests:
-        for uid, data in list(waiting_requests.items()):
-            if request_bot_type.get(uid) in ['powered', 'powered_re9']:
-                await bot.send_message(uid, f"✅ رمز التحقق: {codes[0]}\n\nيوم سعيد 🫶")
-                print(f"📨 أرسلنا الكود للمستخدم {uid}")
-                del waiting_requests[uid]
-                if uid in request_bot_type:
-                    del request_bot_type[uid]
-                active_request = None
-                break
-
 # ==================== إعداد قائمة الأوامر (Menu) ====================
 async def setup_bot_commands():
     """إعداد قائمة الأوامر المنسدلة في تيليجرام"""
@@ -1495,11 +1156,9 @@ async def setup_bot_commands():
         BotCommand(command='find', description='البحث عن حساب | Find account'),
         BotCommand(command='listcount', description='عدد الحسابات | List count'),
         
-        # إدارة الحسابات
-        BotCommand(command='addre9', description='إضافة لـ RE9 | Add to RE9'),
-        BotCommand(command='delre9', description='حذف من RE9 | Del from RE9'),
-        BotCommand(command='addpowered', description='إضافة لـ Powered | Add to Powered'),
-        BotCommand(command='delpowered', description='حذف من Powered | Del from Powered'),
+        # إدارة حسابات مجد
+        BotCommand(command='addmajd', description='إضافة لـ مجد | Add to Majd'),
+        BotCommand(command='delmajd', description='حذف من مجد | Del from Majd'),
     ]
     
     try:
