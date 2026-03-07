@@ -51,6 +51,7 @@ FIXED_ORDER_NUMBER = '208718912'
 MAJD_ACCOUNTS = {
     'Qk6Yo2Fn7Oi9': '245334253',
     'mjeedka_resident927': '245239530',
+    'mjeedka_resident924': '245239530',
     'mjeedka_resident': '245725023'
 }
 
